@@ -1,0 +1,135 @@
+services:
+  postgres:
+    image: postgres:15
+    container_name: temple_postgres
+    environment:
+      POSTGRES_DB: temple_ecosystem_db
+      POSTGRES_USER: temple_admin
+      POSTGRES_PASSWORD: temple_password123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backends/init-db:/docker-entrypoint-initdb.d
+    networks:
+      - temple_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U temple_admin -d temple_ecosystem_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  abhaya-hasta-backend:
+    build:
+      context: ./backends/abhaya-hasta-backend
+      dockerfile: Dockerfile
+    container_name: abhaya_hasta_api
+    environment:
+      NODE_ENV: development
+      PORT: 3001
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: temple_ecosystem_db
+      DB_USER: temple_admin
+      DB_PASSWORD: temple_password123
+      JWT_SECRET: abhaya_hasta_secret_key_2024
+      JWT_EXPIRE: 30d
+      RAZORPAY_KEY_ID: rzp_test_1234567890
+      RAZORPAY_KEY_SECRET: test_secret_key_1234567890
+      FRONTEND_URL: http://localhost:5174
+    ports:
+      - "3001:3001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - temple_network
+    volumes:
+      - ./backends/abhaya-hasta-backend:/app
+      - /app/node_modules
+    restart: unless-stopped
+
+  gaithri-backend:
+    build:
+      context: ./backends/gaithri-backend
+      dockerfile: Dockerfile
+    container_name: gaithri_admin_api
+    environment:
+      NODE_ENV: development
+      PORT: 3002
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: temple_ecosystem_db
+      DB_USER: temple_admin
+      DB_PASSWORD: temple_password123
+      JWT_SECRET: gaithri_admin_secret_key_2024
+      JWT_EXPIRE: 30d
+      FRONTEND_URL: http://localhost:5173
+    ports:
+      - "3002:3002"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - temple_network
+    volumes:
+      - ./backends/gaithri-backend:/app
+      - /app/node_modules
+    restart: unless-stopped
+
+  abhaya-hasta-frontend:
+    build:
+      context: ./culture-path-skeleton
+      dockerfile: Dockerfile
+    container_name: abhaya_hasta_ui
+    environment:
+      VITE_API_BASE_URL: http://localhost:3001/api
+    ports:
+      - "5174:5174"
+    depends_on:
+      - abhaya-hasta-backend
+    networks:
+      - temple_network
+    volumes:
+      - ./culture-path-skeleton:/app
+      - /app/node_modules
+    restart: unless-stopped
+
+  gaithri-frontend:
+    build:
+      context: ./sacred-ops-dashboard
+      dockerfile: Dockerfile
+    container_name: gaithri_admin_ui
+    environment:
+      VITE_API_BASE_URL: http://localhost:3002/api
+    ports:
+      - "5173:5173"
+    depends_on:
+      - gaithri-backend
+    networks:
+      - temple_network
+    volumes:
+      - ./sacred-ops-dashboard:/app
+      - /app/node_modules
+    restart: unless-stopped
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: temple_pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@temple.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+    networks:
+      - temple_network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+
+networks:
+  temple_network:
+    driver: bridge
