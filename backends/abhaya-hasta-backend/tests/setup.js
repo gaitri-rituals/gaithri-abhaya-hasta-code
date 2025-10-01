@@ -30,7 +30,7 @@ beforeAll(async () => {
         name VARCHAR(255) NOT NULL,
         phone VARCHAR(15) UNIQUE NOT NULL,
         email VARCHAR(255) UNIQUE,
-        password_hash VARCHAR(255),
+        password VARCHAR(255),
         verification_token VARCHAR(6),
         role VARCHAR(20) DEFAULT 'user',
         is_verified BOOLEAN DEFAULT false,

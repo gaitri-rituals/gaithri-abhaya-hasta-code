@@ -41,6 +41,23 @@ CREATE TABLE IF NOT EXISTS temples (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Create admin_users table for temple staff and administrators
+CREATE TABLE IF NOT EXISTS admin_users (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  email VARCHAR(255) UNIQUE NOT NULL,
+  phone VARCHAR(20) UNIQUE NOT NULL,
+  password_hash VARCHAR(255) NOT NULL,
+  role VARCHAR(50) NOT NULL DEFAULT 'admin',
+  temple_id INTEGER REFERENCES temples(id) ON DELETE SET NULL,
+  is_active BOOLEAN DEFAULT true,
+  last_login TIMESTAMP WITH TIME ZONE,
+  reset_password_token VARCHAR(255),
+  reset_password_expire TIMESTAMP WITH TIME ZONE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Create temple_services table
 CREATE TABLE IF NOT EXISTS temple_services (
   id SERIAL PRIMARY KEY,
@@ -245,3 +262,166 @@ CREATE TABLE IF NOT EXISTS audit_logs (
   user_agent TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Create ritual_categories table for Gaithri management
+CREATE TABLE IF NOT EXISTS ritual_categories (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  description TEXT,
+  icon VARCHAR(100),
+  color VARCHAR(50),
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create vendors table for temple vendor management
+CREATE TABLE IF NOT EXISTS vendors (
+  id SERIAL PRIMARY KEY,
+  temple_id INTEGER REFERENCES temples(id) ON DELETE CASCADE,
+  name VARCHAR(255) NOT NULL,
+  contact_person VARCHAR(255),
+  phone VARCHAR(20) NOT NULL,
+  email VARCHAR(255),
+  address TEXT,
+  category VARCHAR(100) NOT NULL,
+  rating DECIMAL(3, 2) DEFAULT 0.00,
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create store_items table for temple store management
+CREATE TABLE IF NOT EXISTS store_items (
+  id SERIAL PRIMARY KEY,
+  temple_id INTEGER REFERENCES temples(id) ON DELETE CASCADE,
+  name VARCHAR(255) NOT NULL,
+  description TEXT,
+  category VARCHAR(100) NOT NULL,
+  price DECIMAL(10, 2) NOT NULL,
+  stock_quantity INTEGER DEFAULT 0,
+  image_url VARCHAR(500),
+  is_available BOOLEAN DEFAULT true,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create store_orders table for temple store orders
+CREATE TABLE IF NOT EXISTS store_orders (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  temple_id INTEGER REFERENCES temples(id) ON DELETE SET NULL,
+  total_amount DECIMAL(10, 2) NOT NULL,
+  status VARCHAR(50) DEFAULT 'pending',
+  payment_status VARCHAR(50) DEFAULT 'pending',
+  payment_id VARCHAR(255),
+  delivery_address TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create store_order_items table for store order line items
+CREATE TABLE IF NOT EXISTS store_order_items (
+  id SERIAL PRIMARY KEY,
+  order_id INTEGER REFERENCES store_orders(id) ON DELETE CASCADE,
+  item_id INTEGER REFERENCES store_items(id) ON DELETE SET NULL,
+  quantity INTEGER NOT NULL,
+  unit_price DECIMAL(10, 2) NOT NULL,
+  total_price DECIMAL(10, 2) NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create events table for temple events and festivals
+CREATE TABLE IF NOT EXISTS events (
+  id SERIAL PRIMARY KEY,
+  temple_id INTEGER REFERENCES temples(id) ON DELETE CASCADE,
+  name VARCHAR(255) NOT NULL,
+  description TEXT,
+  event_date DATE NOT NULL,
+  start_time TIME,
+  end_time TIME,
+  category VARCHAR(100),
+  is_recurring BOOLEAN DEFAULT false,
+  recurrence_pattern VARCHAR(50),
+  max_participants INTEGER,
+  registration_required BOOLEAN DEFAULT false,
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create event_registrations table for event participation
+CREATE TABLE IF NOT EXISTS event_registrations (
+  id SERIAL PRIMARY KEY,
+  event_id INTEGER REFERENCES events(id) ON DELETE CASCADE,
+  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  registration_date TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  status VARCHAR(50) DEFAULT 'registered',
+  notes TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create community_posts table for temple community features
+CREATE TABLE IF NOT EXISTS community_posts (
+  id SERIAL PRIMARY KEY,
+  temple_id INTEGER REFERENCES temples(id) ON DELETE CASCADE,
+  user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  title VARCHAR(255) NOT NULL,
+  content TEXT NOT NULL,
+  category VARCHAR(100),
+  image_url VARCHAR(500),
+  is_approved BOOLEAN DEFAULT false,
+  likes_count INTEGER DEFAULT 0,
+  comments_count INTEGER DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create community_comments table for post comments
+CREATE TABLE IF NOT EXISTS community_comments (
+  id SERIAL PRIMARY KEY,
+  post_id INTEGER REFERENCES community_posts(id) ON DELETE CASCADE,
+  user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  content TEXT NOT NULL,
+  parent_comment_id INTEGER REFERENCES community_comments(id) ON DELETE CASCADE,
+  is_approved BOOLEAN DEFAULT false,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create favorites table for user favorite temples
+CREATE TABLE IF NOT EXISTS favorites (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  temple_id INTEGER REFERENCES temples(id) ON DELETE CASCADE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(user_id, temple_id)
+);
+
+-- Create cart_items table for shopping cart functionality
+CREATE TABLE IF NOT EXISTS cart_items (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  temple_id INTEGER REFERENCES temples(id) ON DELETE CASCADE,
+  service_id INTEGER REFERENCES temple_services(id) ON DELETE CASCADE,
+  item_id INTEGER REFERENCES store_items(id) ON DELETE CASCADE,
+  quantity INTEGER DEFAULT 1,
+  booking_date DATE,
+  booking_time TIME,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Add indexes for better performance
+CREATE INDEX IF NOT EXISTS idx_temples_city ON temples(city);
+CREATE INDEX IF NOT EXISTS idx_temples_state ON temples(state);
+CREATE INDEX IF NOT EXISTS idx_temples_is_active ON temples(is_active);
+CREATE INDEX IF NOT EXISTS idx_bookings_user_id ON bookings(user_id);
+CREATE INDEX IF NOT EXISTS idx_bookings_temple_id ON bookings(temple_id);
+CREATE INDEX IF NOT EXISTS idx_bookings_booking_date ON bookings(booking_date);
+CREATE INDEX IF NOT EXISTS idx_events_temple_id ON events(temple_id);
+CREATE INDEX IF NOT EXISTS idx_events_event_date ON events(event_date);
+CREATE INDEX IF NOT EXISTS idx_store_items_temple_id ON store_items(temple_id);
+CREATE INDEX IF NOT EXISTS idx_community_posts_temple_id ON community_posts(temple_id);
+CREATE INDEX IF NOT EXISTS idx_favorites_user_id ON favorites(user_id);

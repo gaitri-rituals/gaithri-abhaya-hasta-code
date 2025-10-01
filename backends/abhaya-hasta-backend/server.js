@@ -41,7 +41,7 @@ app.use(limiter);
 
 // CORS configuration
 // CORS configuration - allow multiple localhost dev ports
-const baseAllowed = 'http://localhost:5173,http://localhost:5174,http://localhost:5175,http://localhost:5176,http://localhost:8080';
+const baseAllowed = 'http://localhost:5173,http://localhost:5174,http://localhost:5175,http://localhost:5176,http://localhost:8080,http://localhost:8081';
 const envOrigins = process.env.FRONTEND_URLS || process.env.FRONTEND_URL || '';
 const allowedOrigins = ((envOrigins ? envOrigins + ',' : '') + baseAllowed).split(',');
 

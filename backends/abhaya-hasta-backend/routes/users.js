@@ -21,7 +21,7 @@ router.get('/profile', protect, async (req, res) => {
         udi.favorite_deities, udi.preferred_temple_ids, udi.frequent_pujas,
         COUNT(b.id) as total_bookings,
         COUNT(CASE WHEN b.booking_status = 'completed' THEN 1 END) as completed_bookings,
-        COALESCE(SUM(CASE WHEN b.payment_status = 'completed' THEN b.payment_amount ELSE 0 END), 0) as total_spent,
+        COALESCE(SUM(CASE WHEN b.payment_status = 'completed' THEN b.amount ELSE 0 END), 0) as total_spent,
         (SELECT COUNT(*) FROM user_addresses WHERE user_id = u.id) as address_count
       FROM users u
       LEFT JOIN user_preferences up ON u.id = up.user_id
@@ -79,7 +79,7 @@ router.get('/profile', protect, async (req, res) => {
 
     // Clean up profile data
     const {
-      password_hash,
+      password,
       verification_token,
       reset_password_token,
       reset_password_expire,
@@ -250,7 +250,7 @@ router.put('/change-password', protect, [
 
     // Get current user's password hash
     const users = await sequelize.query(
-      'SELECT password_hash FROM users WHERE id = $1',
+      'SELECT password FROM users WHERE id = $1',
       {
         bind: [user_id],
         type: QueryTypes.SELECT
@@ -267,7 +267,7 @@ router.put('/change-password', protect, [
     const user = users[0];
 
     // Verify current password
-    const isMatch = await bcrypt.compare(currentPassword, user.password_hash);
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
     if (!isMatch) {
       return res.status(400).json({
         success: false,
@@ -281,7 +281,7 @@ router.put('/change-password', protect, [
 
     // Update password
     await sequelize.query(
-      'UPDATE users SET password_hash = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
+      'UPDATE users SET password = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
       {
         bind: [hashedPassword, user_id],
         type: QueryTypes.UPDATE

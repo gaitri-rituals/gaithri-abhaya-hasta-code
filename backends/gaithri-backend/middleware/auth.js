@@ -14,25 +14,55 @@ export const protect = async (req, res, next) => {
       // Verify token
       const decoded = jwt.verify(token, process.env.JWT_SECRET || 'gaithri_admin_secret_key_2024');
 
-      // Get admin user from the token
-      const adminQuery = `
-        SELECT 
-          au.id, au.name, au.email, au.role, au.temple_id,
-          au.permissions, au.is_active
-        FROM admin_users au
-        WHERE au.id = $1 AND au.is_active = true
-      `;
+      let user = null;
 
-      const admins = await sequelize.query(adminQuery, {
-        bind: [decoded.userId],
-        type: QueryTypes.SELECT
-      });
+      // Check user type from token and query appropriate table
+      if (decoded.userType === 'admin') {
+        const adminQuery = `
+          SELECT 
+            au.id, au.name, au.email, au.role, au.temple_id,
+            au.permissions, au.is_active, 'admin' as user_type
+          FROM admin_users au
+          WHERE au.id = $1 AND au.is_active = true
+        `;
+        const admins = await sequelize.query(adminQuery, {
+          bind: [decoded.userId],
+          type: QueryTypes.SELECT
+        });
+        user = admins[0];
+      } else if (decoded.userType === 'temple') {
+        const templeQuery = `
+          SELECT 
+            tu.id, tu.name, tu.email, tu.role, tu.temple_id,
+            tu.permissions, tu.is_active, 'temple' as user_type
+          FROM temple_users tu
+          WHERE tu.id = $1 AND tu.is_active = true
+        `;
+        const templeUsers = await sequelize.query(templeQuery, {
+          bind: [decoded.userId],
+          type: QueryTypes.SELECT
+        });
+        user = templeUsers[0];
+      } else if (decoded.userType === 'vendor') {
+        const vendorQuery = `
+          SELECT 
+            vu.id, vu.name, vu.email, vu.role, vu.vendor_id,
+            vu.permissions, vu.is_active, 'vendor' as user_type
+          FROM vendor_users vu
+          WHERE vu.id = $1 AND vu.is_active = true
+        `;
+        const vendorUsers = await sequelize.query(vendorQuery, {
+          bind: [decoded.userId],
+          type: QueryTypes.SELECT
+        });
+        user = vendorUsers[0];
+      }
 
-      if (admins.length === 0) {
+      if (!user) {
         return res.status(401).json({ message: 'User not found or inactive' });
       }
 
-      req.user = admins[0];
+      req.user = user;
       next();
     } catch (error) {
       console.error('Auth error:', error);

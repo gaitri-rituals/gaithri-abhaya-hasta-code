@@ -78,6 +78,13 @@ INSERT INTO users (name, email, phone, password, role) VALUES
 ('Meenakshi Staff', 'staff@meenakshi.org', '4522345677', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin'),
 ('Golden Temple Admin', 'admin@goldentemple.org', '1832255554', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin');
 
+-- Insert admin users for Gaithri backend (temple management system)
+INSERT INTO admin_users (name, email, phone, password_hash, role, temple_id, is_active) VALUES
+('Super Admin', 'admin@temples.org', '9999999999', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'super-admin', NULL, true),
+('Tirupati Admin', 'admin@tirupati.org', '8772339998', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin', 1, true),
+('Meenakshi Staff', 'staff@meenakshi.org', '4522345677', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin', 2, true),
+('Golden Temple Admin', 'admin@goldentemple.org', '1832255554', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin', 3, true);
+
 -- Insert user preferences
 INSERT INTO user_preferences (user_id, language, notifications_enabled) VALUES
 (1, 'en', true),
@@ -154,3 +161,78 @@ INSERT INTO audit_logs (user_id, action, table_name, record_id, changes, ip_addr
 (6, 'create', 'temples', 1, '{"name": "Sri Venkateswara Temple", "is_active": true}', '192.168.1.1'),
 (7, 'update', 'temple_services', 1, '{"price": {"old": 250.00, "new": 300.00}}', '192.168.1.2'),
 (8, 'delete', 'temple_events', 1, '{"id": 1, "name": "Old Event"}', '192.168.1.3');
+
+-- Insert additional bookings
+INSERT INTO bookings (user_id, temple_id, service_id, booking_date, booking_time, status, amount, payment_status) VALUES
+(3, 3, 6, '2024-10-20', '12:00', 'completed', 0.00, 'completed'),
+(4, 7, 10, '2024-10-22', '07:00', 'pending', 100.00, 'pending'),
+(5, 8, 11, '2024-10-25', '05:00', 'pending', 0.00, 'pending');
+
+-- Insert ritual categories
+INSERT INTO ritual_categories (name, description, is_active) VALUES
+('Daily Puja', 'Regular daily worship rituals', true),
+('Special Occasions', 'Festivals and special celebration rituals', true),
+('Personal Ceremonies', 'Individual and family ceremonies', true),
+('Seasonal Festivals', 'Seasonal and calendar-based festivals', true);
+
+-- Insert vendors
+INSERT INTO vendors (name, contact_person, phone, email, address, category, is_active) VALUES
+('Divine Flowers', 'Raj Kumar', '9876543220', 'raj@divineflowers.com', '123 Temple Street, Chennai', 'flowers', true),
+('Sacred Sweets', 'Meera Devi', '9876543221', 'meera@sacredsweets.com', '456 Market Road, Madurai', 'prasadam', true),
+('Holy Decorations', 'Suresh Babu', '9876543222', 'suresh@holydecorations.com', '789 Craft Lane, Tirupati', 'decorations', true),
+('Temple Supplies', 'Lakshman Das', '9876543223', 'lakshman@templesupplies.com', '321 Supply Street, Varanasi', 'supplies', true);
+
+-- Insert store items
+INSERT INTO store_items (temple_id, name, description, price, category, image_url, is_available) VALUES
+(1, 'Fresh Jasmine Garland', 'Handmade jasmine flower garland for deity decoration', 50.00, 'flowers', '/images/jasmine-garland.jpg', true),
+(1, 'Rose Petals (1kg)', 'Fresh rose petals for offering and decoration', 200.00, 'flowers', '/images/rose-petals.jpg', true),
+(2, 'Laddu Prasadam', 'Traditional sweet laddu blessed as prasadam', 100.00, 'prasadam', '/images/laddu.jpg', true),
+(2, 'Coconut Burfi', 'Delicious coconut burfi for temple offerings', 150.00, 'prasadam', '/images/coconut-burfi.jpg', true),
+(3, 'Silk Temple Cloth', 'Premium silk cloth for deity decoration', 500.00, 'decorations', '/images/silk-cloth.jpg', true),
+(1, 'Camphor Tablets', 'Pure camphor tablets for aarti', 75.00, 'supplies', '/images/camphor.jpg', true),
+(1, 'Incense Sticks Set', 'Variety pack of aromatic incense sticks', 120.00, 'supplies', '/images/incense.jpg', true);
+
+-- Insert events
+INSERT INTO events (temple_id, name, description, event_date, start_time, end_time, category, max_participants, is_active) VALUES
+(1, 'Vaikunta Ekadashi Celebration', 'Grand celebration with special darshan and prasadam', '2024-12-21', '06:00', '18:00', 'festival', 1000, true),
+(2, 'Chithirai Festival', 'Annual divine wedding celebration', '2024-04-15', '05:00', '15:00', 'festival', 500, true),
+(3, 'Guru Nanak Jayanti', 'Birth anniversary celebration with kirtan and langar', '2024-11-15', '04:00', '12:00', 'festival', 2000, true),
+(1, 'Bhagavad Gita Workshop', 'Interactive workshop on Bhagavad Gita teachings', '2024-11-01', '10:00', '16:00', 'workshop', 50, true),
+(2, 'Classical Music Concert', 'Devotional music concert by renowned artists', '2024-11-10', '18:00', '21:00', 'cultural', 200, true);
+
+-- Insert community posts
+INSERT INTO community_posts (user_id, temple_id, title, content, category, is_approved) VALUES
+(1, 1, 'Beautiful Darshan Experience', 'Had an amazing darshan today. The temple atmosphere was so peaceful and divine.', 'experience', true),
+(2, 2, 'Upcoming Festival Preparations', 'Excited for the upcoming Chithirai festival. The decorations are looking magnificent!', 'announcement', true),
+(3, 3, 'Langar Seva Opportunity', 'Volunteers needed for langar seva this weekend. Please contact the temple office.', 'volunteer', true),
+(4, 1, 'Meditation Session Feedback', 'The morning meditation sessions have been incredibly helpful for spiritual growth.', 'experience', true),
+(5, 2, 'Temple Architecture Appreciation', 'The intricate carvings and architecture of this temple never cease to amaze me.', 'appreciation', true);
+
+-- Insert community comments
+INSERT INTO community_comments (post_id, user_id, content, is_approved) VALUES
+(1, 2, 'I completely agree! The morning darshan is especially peaceful.', true),
+(1, 3, 'Thank you for sharing your experience. It motivates others to visit.', true),
+(2, 1, 'Looking forward to participating in the festival celebrations!', true),
+(3, 5, 'I would love to volunteer. How can I register?', true),
+(4, 2, 'The meditation sessions have helped me too. Very calming.', true);
+
+-- Insert favorites
+INSERT INTO favorites (user_id, temple_id) VALUES
+(1, 1),
+(1, 2),
+(2, 2),
+(2, 3),
+(3, 3),
+(3, 1),
+(4, 7),
+(5, 8);
+
+-- Insert cart items
+INSERT INTO cart_items (user_id, item_id, quantity) VALUES
+(1, 1, 2),
+(1, 3, 1),
+(2, 2, 3),
+(2, 4, 2),
+(3, 5, 1),
+(4, 6, 5),
+(5, 7, 2);

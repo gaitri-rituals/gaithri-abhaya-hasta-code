@@ -26,20 +26,52 @@ const protect = async (req, res, next) => {
       // Verify token
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-      // Get user from database
-      const users = await executeQuery(
-        'SELECT id, name, phone, email, role FROM users WHERE id = $1 AND is_active = true',
-        { bindings: [decoded.userId] }
-      );
+      let user = null;
 
-      if (!users.length) {
+      // Check user type from token and query appropriate table
+      if (decoded.userType === 'admin') {
+        const adminUsers = await executeQuery(
+          'SELECT id, name, email, role, temple_id, is_active FROM admin_users WHERE id = $1 AND is_active = true',
+          { bindings: [decoded.userId] }
+        );
+        if (adminUsers.length) {
+          user = { ...adminUsers[0], user_type: 'admin' };
+        }
+      } else if (decoded.userType === 'temple') {
+        const templeUsers = await executeQuery(
+          'SELECT id, name, email, role, temple_id, is_active FROM temple_users WHERE id = $1 AND is_active = true',
+          { bindings: [decoded.userId] }
+        );
+        if (templeUsers.length) {
+          user = { ...templeUsers[0], user_type: 'temple' };
+        }
+      } else if (decoded.userType === 'vendor') {
+        const vendorUsers = await executeQuery(
+          'SELECT id, name, email, role, vendor_id, is_active FROM vendor_users WHERE id = $1 AND is_active = true',
+          { bindings: [decoded.userId] }
+        );
+        if (vendorUsers.length) {
+          user = { ...vendorUsers[0], user_type: 'vendor' };
+        }
+      } else {
+        // Fallback to regular users table for frontend users
+        const users = await executeQuery(
+          'SELECT id, name, phone, email, role FROM users WHERE id = $1',
+          { bindings: [decoded.userId] }
+        );
+        if (users.length) {
+          user = { ...users[0], user_type: 'user' };
+        }
+      }
+
+      if (!user) {
         return res.status(401).json({
           success: false,
           message: 'User not found'
         });
       }
 
-      req.user = users[0];
+      req.user = user;
       next();
     } catch (error) {
       return res.status(401).json({
@@ -97,14 +129,46 @@ const optionalAuth = async (req, res, next) => {
       // Verify token
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-      // Get user from database
-      const users = await executeQuery(
-        'SELECT id, name, phone, email, role FROM users WHERE id = $1 AND is_active = true',
-        { bindings: [decoded.userId] }
-      );
+      let user = null;
 
-      if (users.length) {
-        req.user = users[0];
+      // Check user type from token and query appropriate table
+      if (decoded.userType === 'admin') {
+        const adminUsers = await executeQuery(
+          'SELECT id, name, email, role, temple_id, is_active FROM admin_users WHERE id = $1 AND is_active = true',
+          { bindings: [decoded.userId] }
+        );
+        if (adminUsers.length) {
+          user = { ...adminUsers[0], user_type: 'admin' };
+        }
+      } else if (decoded.userType === 'temple') {
+        const templeUsers = await executeQuery(
+          'SELECT id, name, email, role, temple_id, is_active FROM temple_users WHERE id = $1 AND is_active = true',
+          { bindings: [decoded.userId] }
+        );
+        if (templeUsers.length) {
+          user = { ...templeUsers[0], user_type: 'temple' };
+        }
+      } else if (decoded.userType === 'vendor') {
+        const vendorUsers = await executeQuery(
+          'SELECT id, name, email, role, vendor_id, is_active FROM vendor_users WHERE id = $1 AND is_active = true',
+          { bindings: [decoded.userId] }
+        );
+        if (vendorUsers.length) {
+          user = { ...vendorUsers[0], user_type: 'vendor' };
+        }
+      } else {
+        // Fallback to regular users table for frontend users
+        const users = await executeQuery(
+          'SELECT id, name, phone, email, role FROM users WHERE id = $1',
+          { bindings: [decoded.userId] }
+        );
+        if (users.length) {
+          user = { ...users[0], user_type: 'user' };
+        }
+      }
+
+      if (user) {
+        req.user = user;
       }
     } catch (error) {
       // Invalid token, but continue without user
