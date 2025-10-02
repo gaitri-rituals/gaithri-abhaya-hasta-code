@@ -20,6 +20,9 @@ const storeRoutes = require('./routes/store.js');
 const subscriptionRoutes = require('./routes/subscriptions.js');
 const adminRoutes = require('./routes/admin.js');
 const dashboardRoutes = require('./routes/dashboard.js');
+const ritualCategoryRoutes = require('./routes/ritualCategories.js');
+const eventsRoutes = require('./routes/events.js');
+const vendorsRoutes = require('./routes/vendors.js');
 const { swaggerUi, specs } = require('./config/swagger.js');
 
 dotenv.config();
@@ -41,7 +44,7 @@ app.use(limiter);
 
 // CORS configuration
 // CORS configuration - allow multiple localhost dev ports
-const baseAllowed = 'http://localhost:5173,http://localhost:5174,http://localhost:5175,http://localhost:5176,http://localhost:8080,http://localhost:8081';
+const baseAllowed = 'http://localhost:5173,http://localhost:5174,http://localhost:5175,http://localhost:5176,http://localhost:8080,http://localhost:8081,http://localhost:8082';
 const envOrigins = process.env.FRONTEND_URLS || process.env.FRONTEND_URL || '';
 const allowedOrigins = ((envOrigins ? envOrigins + ',' : '') + baseAllowed).split(',');
 
@@ -95,6 +98,9 @@ app.use('/api/address', addressRoutes);
 app.use('/api/subscriptions', subscriptionRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/ritual-categories', ritualCategoryRoutes);
+app.use('/api/events', eventsRoutes);
+app.use('/api/vendors', vendorsRoutes);
 
 // Scheduled tasks
 cron.schedule('0 0 * * *', () => {
