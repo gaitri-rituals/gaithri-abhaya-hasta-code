@@ -8,7 +8,8 @@ const {
   verifyOTPLogin, 
   register, 
   refreshToken, 
-  logout 
+  logout,
+  getProfile
 } = require('../controllers/authController.js');
 const { 
   validateLogin, 
@@ -18,6 +19,7 @@ const {
   validateRegister, 
   validateRefreshToken 
 } = require('../middleware/authValidation.js');
+const { protect } = require('../middleware/auth.js');
 
 const router = express.Router();
 
@@ -41,5 +43,8 @@ router.post('/otp/verify', validateOTPVerification, verifyOTPLogin);
 router.post('/register', validateRegister, register);
 router.post('/refresh-token', validateRefreshToken, refreshToken);
 router.post('/logout', logout);
+
+// Profile route (protected)
+router.get('/me', protect, getProfile);
 
 module.exports = router;

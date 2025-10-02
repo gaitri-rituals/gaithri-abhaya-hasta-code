@@ -661,6 +661,34 @@ const logout = async (req, res) => {
   }
 };
 
+const getProfile = async (req, res) => {
+  try {
+    // User is already attached by protect middleware
+    const user = req.user;
+    
+    res.json({
+      success: true,
+      data: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        role: user.role,
+        temple_id: user.temple_id,
+        vendor_id: user.vendor_id,
+        userType: user.user_type,
+        is_active: user.is_active
+      }
+    });
+  } catch (error) {
+    console.error('Get profile error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get profile'
+    });
+  }
+};
+
 module.exports = {
   login,
   adminLogin,
@@ -670,5 +698,6 @@ module.exports = {
   verifyOTPLogin,
   register,
   refreshToken,
-  logout
+  logout,
+  getProfile
 };

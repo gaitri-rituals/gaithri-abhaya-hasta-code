@@ -47,4 +47,14 @@ router.post('/notifications/:id/reject', protect, rejectNotification);
 // @access  Private (Temple Admin/Staff)
 router.get('/analytics', protect, getAnalytics);
 
+// @route   GET /api/dashboard/test-analytics
+// @desc    Test analytics data without authentication (temporary)
+// @access  Public (for testing only)
+router.get('/test-analytics', getAnalytics);
+
+// @route   GET /api/dashboard/test-visitor-flow
+// @desc    Test visitor flow data without authentication (temporary)
+// @access  Public (for testing only)
+router.get('/test-visitor-flow', getVisitorFlow);
+
 export default router;

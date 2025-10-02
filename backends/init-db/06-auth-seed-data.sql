@@ -1,29 +1,29 @@
 -- Seed data for authentication system
--- Note: All passwords are hashed using bcrypt with salt rounds 12
--- Default password for all users: "password123" (change in production)
+-- Note: All passwords are hashed using bcrypt with salt rounds 10
+-- Default password for all users: "password" (change in production)
 
 -- Insert Super Admin users (admin_users table)
 INSERT INTO admin_users (name, email, password_hash, role, temple_id, is_active) VALUES
-('Super Admin', 'admin@temples.org', '$2b$12$LQv3c1yqBwEHXk.JHd3HHOxz9roIFzIx9pMjbykuaAy/y6CCXU4nW', 'super-admin', NULL, true),
-('System Administrator', 'sysadmin@temples.org', '$2b$12$LQv3c1yqBwEHXk.JHd3HHOxz9roIFzIx9pMjbykuaAy/y6CCXU4nW', 'admin', NULL, true),
-('Temple Coordinator', 'coordinator@temples.org', '$2b$12$LQv3c1yqBwEHXk.JHd3HHOxz9roIFzIx9pMjbykuaAy/y6CCXU4nW', 'temple-coordinator', 1, true)
+('Super Admin', 'admin@temples.org', '$2a$10$xTqhihEoBgSwNCn4vDw.euggx/ziZY8l9XYxkIU.LVvKUsfmQO9Fq', 'super-admin', NULL, true),
+('System Administrator', 'sysadmin@temples.org', '$2a$10$xTqhihEoBgSwNCn4vDw.euggx/ziZY8l9XYxkIU.LVvKUsfmQO9Fq', 'admin', NULL, true),
+('Temple Coordinator', 'coordinator@temples.org', '$2a$10$xTqhihEoBgSwNCn4vDw.euggx/ziZY8l9XYxkIU.LVvKUsfmQO9Fq', 'temple-coordinator', 1, true)
 ON CONFLICT (email) DO NOTHING;
 
 -- Insert Temple Users (temple_users table)
 INSERT INTO temple_users (temple_id, name, email, password_hash, role, is_active, is_primary_contact, permissions) VALUES
-(1, 'Tirumala Admin', 'admin@tirumala.org', '$2b$12$LQv3c1yqBwEHXk.JHd3HHOxz9roIFzIx9pMjbykuaAy/y6CCXU4nW', 'temple_admin', true, true, '{"manage_bookings": true, "manage_services": true, "view_reports": true}'),
-(1, 'Tirumala Manager', 'manager@tirumala.org', '$2b$12$LQv3c1yqBwEHXk.JHd3HHOxz9roIFzIx9pMjbykuaAy/y6CCXU4nW', 'temple_manager', true, false, '{"manage_bookings": true, "view_reports": true}'),
-(2, 'Meenakshi Admin', 'admin@meenakshi.org', '$2b$12$LQv3c1yqBwEHXk.JHd3HHOxz9roIFzIx9pMjbykuaAy/y6CCXU4nW', 'temple_admin', true, true, '{"manage_bookings": true, "manage_services": true, "view_reports": true}'),
-(3, 'Golden Temple Admin', 'admin@goldentemple.org', '$2b$12$LQv3c1yqBwEHXk.JHd3HHOxz9roIFzIx9pMjbykuaAy/y6CCXU4nW', 'temple_admin', true, true, '{"manage_bookings": true, "manage_services": true, "view_reports": true}'),
-(4, 'Jagannath Admin', 'admin@jagannath.org', '$2b$12$LQv3c1yqBwEHXk.JHd3HHOxz9roIFzIx9pMjbykuaAy/y6CCXU4nW', 'temple_admin', true, true, '{"manage_bookings": true, "manage_services": true, "view_reports": true}')
+(1, 'Tirumala Admin', 'admin@tirumala.org', '$2a$10$xTqhihEoBgSwNCn4vDw.euggx/ziZY8l9XYxkIU.LVvKUsfmQO9Fq', 'temple_admin', true, true, '{"manage_bookings": true, "manage_services": true, "view_reports": true}'),
+(1, 'Tirumala Manager', 'manager@tirumala.org', '$2a$10$xTqhihEoBgSwNCn4vDw.euggx/ziZY8l9XYxkIU.LVvKUsfmQO9Fq', 'temple_manager', true, false, '{"manage_bookings": true, "view_reports": true}'),
+(2, 'Meenakshi Admin', 'admin@meenakshi.org', '$2a$10$xTqhihEoBgSwNCn4vDw.euggx/ziZY8l9XYxkIU.LVvKUsfmQO9Fq', 'temple_admin', true, true, '{"manage_bookings": true, "manage_services": true, "view_reports": true}'),
+(3, 'Golden Temple Admin', 'admin@goldentemple.org', '$2a$10$xTqhihEoBgSwNCn4vDw.euggx/ziZY8l9XYxkIU.LVvKUsfmQO9Fq', 'temple_admin', true, true, '{"manage_bookings": true, "manage_services": true, "view_reports": true}'),
+(4, 'Jagannath Admin', 'admin@jagannath.org', '$2a$10$xTqhihEoBgSwNCn4vDw.euggx/ziZY8l9XYxkIU.LVvKUsfmQO9Fq', 'temple_admin', true, true, '{"manage_bookings": true, "manage_services": true, "view_reports": true}')
 ON CONFLICT (email) DO NOTHING;
 
 -- Insert Vendor Users (vendor_users table)
 INSERT INTO vendor_users (vendor_id, name, email, password_hash, role, is_active, permissions, notification_preferences) VALUES
-(1, 'Catering Manager', 'manager@sacredcatering.com', '$2b$12$LQv3c1yqBwEHXk.JHd3HHOxz9roIFzIx9pMjbykuaAy/y6CCXU4nW', 'vendor_admin', true, '{"manage_services": true, "respond_to_events": true, "view_analytics": true}', '{"email": true, "sms": true, "push": true}'),
-(2, 'Flower Decorator', 'admin@divineflowers.com', '$2b$12$LQv3c1yqBwEHXk.JHd3HHOxz9roIFzIx9pMjbykuaAy/y6CCXU4nW', 'vendor_admin', true, '{"manage_services": true, "respond_to_events": true, "view_analytics": true}', '{"email": true, "sms": false, "push": true}'),
-(3, 'Music Director', 'director@templemusic.com', '$2b$12$LQv3c1yqBwEHXk.JHd3HHOxz9roIFzIx9pMjbykuaAy/y6CCXU4nW', 'vendor_admin', true, '{"manage_services": true, "respond_to_events": true, "view_analytics": true}', '{"email": true, "sms": true, "push": false}'),
-(4, 'Photography Manager', 'admin@holymoments.com', '$2b$12$LQv3c1yqBwEHXk.JHd3HHOxz9roIFzIx9pMjbykuaAy/y6CCXU4nW', 'vendor_admin', true, '{"manage_services": true, "respond_to_events": true, "view_analytics": true}', '{"email": true, "sms": false, "push": true}')
+(1, 'Catering Manager', 'manager@sacredcatering.com', '$2a$10$xTqhihEoBgSwNCn4vDw.euggx/ziZY8l9XYxkIU.LVvKUsfmQO9Fq', 'vendor_admin', true, '{"manage_services": true, "respond_to_events": true, "view_analytics": true}', '{"email": true, "sms": true, "push": true}'),
+(2, 'Flower Decorator', 'admin@divineflowers.com', '$2a$10$xTqhihEoBgSwNCn4vDw.euggx/ziZY8l9XYxkIU.LVvKUsfmQO9Fq', 'vendor_admin', true, '{"manage_services": true, "respond_to_events": true, "view_analytics": true}', '{"email": true, "sms": false, "push": true}'),
+(3, 'Music Director', 'director@templemusic.com', '$2a$10$xTqhihEoBgSwNCn4vDw.euggx/ziZY8l9XYxkIU.LVvKUsfmQO9Fq', 'vendor_admin', true, '{"manage_services": true, "respond_to_events": true, "view_analytics": true}', '{"email": true, "sms": true, "push": false}'),
+(4, 'Photography Manager', 'admin@holymoments.com', '$2a$10$xTqhihEoBgSwNCn4vDw.euggx/ziZY8l9XYxkIU.LVvKUsfmQO9Fq', 'vendor_admin', true, '{"manage_services": true, "respond_to_events": true, "view_analytics": true}', '{"email": true, "sms": false, "push": true}')
 ON CONFLICT (email) DO NOTHING;
 
 -- Insert Vendor Services

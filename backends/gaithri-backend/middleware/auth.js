@@ -21,7 +21,7 @@ export const protect = async (req, res, next) => {
         const adminQuery = `
           SELECT 
             au.id, au.name, au.email, au.role, au.temple_id,
-            au.permissions, au.is_active, 'admin' as user_type
+            au.is_active, 'admin' as user_type
           FROM admin_users au
           WHERE au.id = $1 AND au.is_active = true
         `;
@@ -47,7 +47,7 @@ export const protect = async (req, res, next) => {
         const vendorQuery = `
           SELECT 
             vu.id, vu.name, vu.email, vu.role, vu.vendor_id,
-            vu.permissions, vu.is_active, 'vendor' as user_type
+            vu.is_active, 'vendor' as user_type
           FROM vendor_users vu
           WHERE vu.id = $1 AND vu.is_active = true
         `;
@@ -82,7 +82,12 @@ export const hasPermission = (permission) => {
       return res.status(401).json({ message: 'Authentication required' });
     }
 
-    if (!req.user.permissions.includes(permission)) {
+    // Admin users don't have permissions field, allow all for super-admin
+    if (req.user.user_type === 'admin' && req.user.role === 'super-admin') {
+      return next();
+    }
+    
+    if (!req.user.permissions || !req.user.permissions.includes(permission)) {
       return res.status(403).json({ 
         message: `Access denied. Required permission: ${permission}` 
       });

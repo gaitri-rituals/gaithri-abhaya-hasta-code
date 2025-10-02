@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS temple_users (
   temple_id INTEGER REFERENCES temples(id) ON DELETE CASCADE,
   name VARCHAR(255) NOT NULL,
   email VARCHAR(255) UNIQUE NOT NULL,
-  phone VARCHAR(20) UNIQUE NOT NULL,
+  phone VARCHAR(20), -- Optional - dashboard users login with email/password
   password_hash VARCHAR(255) NOT NULL,
   role VARCHAR(50) NOT NULL DEFAULT 'temple_admin', -- temple_admin, temple_manager, temple_staff
   is_active BOOLEAN DEFAULT true,
@@ -20,7 +20,6 @@ CREATE TABLE IF NOT EXISTS temple_users (
 -- Add indexes for temple users
 CREATE INDEX IF NOT EXISTS idx_temple_users_email ON temple_users(email);
 CREATE INDEX IF NOT EXISTS idx_temple_users_temple_id ON temple_users(temple_id);
-CREATE INDEX IF NOT EXISTS idx_temple_users_phone ON temple_users(phone);
 CREATE INDEX IF NOT EXISTS idx_temple_users_role ON temple_users(role);
 
 -- Add constraint to ensure only one primary contact per temple

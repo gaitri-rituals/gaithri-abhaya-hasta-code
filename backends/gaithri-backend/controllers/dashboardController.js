@@ -4,7 +4,7 @@ import { QueryTypes } from 'sequelize';
 // GET /api/dashboard/metrics
 export const getMetrics = async (req, res) => {
   try {
-    const { temple_id } = req.user;
+    const temple_id = req.user.temple_id;
 
     const isTempleSuperAdmin = !temple_id;
     const templeFilter = isTempleSuperAdmin ? '' : 'AND temple_id = $1';
@@ -12,11 +12,11 @@ export const getMetrics = async (req, res) => {
 
     const donationsQuery = `
       SELECT 
-        COALESCE(SUM(payment_amount), 0) as total_donations,
+        COALESCE(SUM(amount), 0) as total_donations,
         COUNT(*) as donation_count,
-        COALESCE(SUM(CASE WHEN created_at >= DATE_TRUNC('month', CURRENT_DATE) THEN payment_amount ELSE 0 END), 0) as current_month,
+        COALESCE(SUM(CASE WHEN created_at >= DATE_TRUNC('month', CURRENT_DATE) THEN amount ELSE 0 END), 0) as current_month,
         COALESCE(SUM(CASE WHEN created_at >= DATE_TRUNC('month', CURRENT_DATE - INTERVAL '1 month') 
-                          AND created_at < DATE_TRUNC('month', CURRENT_DATE) THEN payment_amount ELSE 0 END), 0) as last_month
+                          AND created_at < DATE_TRUNC('month', CURRENT_DATE) THEN amount ELSE 0 END), 0) as last_month
       FROM bookings 
       WHERE payment_status = 'completed' ${templeFilter}
     `;
@@ -124,7 +124,7 @@ export const getDonationsChart = async (req, res) => {
       SELECT 
         TO_CHAR(DATE_TRUNC('month', created_at), 'Mon YYYY') as month_year,
         DATE_TRUNC('month', created_at) as month_date,
-        COALESCE(SUM(payment_amount), 0) as total_amount,
+        COALESCE(SUM(amount), 0) as total_amount,
         COUNT(*) as donation_count
       FROM bookings 
       WHERE payment_status = 'completed' 
@@ -150,7 +150,8 @@ export const getDonationsChart = async (req, res) => {
 // GET /api/dashboard/visitor-flow
 export const getVisitorFlow = async (req, res) => {
   try {
-    const { temple_id } = req.user;
+    // Handle case where req.user might be undefined (for testing)
+    const temple_id = req.user ? req.user.temple_id : null;
     const isTempleSuperAdmin = !temple_id;
     const templeFilter = isTempleSuperAdmin ? '' : 'AND temple_id = $1';
     const queryParams = isTempleSuperAdmin ? [] : [temple_id];
@@ -182,7 +183,9 @@ export const getVisitorFlow = async (req, res) => {
 // GET /api/dashboard/notifications
 export const getNotifications = async (req, res) => {
   try {
-    const { temple_id, role } = req.user;
+    const temple_id = req.user.temple_id;
+    const role = req.user.role;
+    
     if (role !== 'temple_admin') {
       return res.status(403).json({ success: false, message: 'Access denied. Temple admin role required.' });
     }
@@ -190,11 +193,10 @@ export const getNotifications = async (req, res) => {
     const notificationsQuery = `
       SELECT 
         b.id,
-        b.service_name,
-        b.scheduled_datetime,
-        b.payment_amount,
-        b.special_requests,
-        b.booking_status,
+        ts.name as service_name,
+        CONCAT(b.booking_date, ' ', b.booking_time) as scheduled_datetime,
+        b.amount,
+        b.status as booking_status,
         b.created_at,
         u.name as user_name,
         u.phone as user_phone,
@@ -202,8 +204,9 @@ export const getNotifications = async (req, res) => {
       FROM bookings b
       JOIN users u ON b.user_id = u.id
       JOIN temples t ON b.temple_id = t.id
+      LEFT JOIN temple_services ts ON b.service_id = ts.id
       WHERE b.temple_id = $1 
-      AND b.booking_status = 'pending'
+      AND b.status = 'pending'
       AND b.payment_status = 'completed'
       ORDER BY b.created_at DESC
       LIMIT 10
@@ -219,10 +222,9 @@ export const getNotifications = async (req, res) => {
         title: `New ${notification.service_name} Booking`,
         description: `${notification.user_name} has requested ${notification.service_name}`,
         datetime: notification.scheduled_datetime,
-        amount: notification.payment_amount,
+        amount: notification.amount,
         user: { name: notification.user_name, phone: notification.user_phone },
         temple: notification.temple_name,
-        special_requests: notification.special_requests,
         created_at: notification.created_at
       }))
     });
@@ -293,8 +295,17 @@ export const rejectNotification = async (req, res) => {
 // GET /api/dashboard/analytics
 export const getAnalytics = async (req, res) => {
   try {
-    const { temple_id } = req.user;
+    const temple_id = req.user.temple_id;
     const { period = 'monthly' } = req.query;
+
+    // Map period parameter to valid PostgreSQL DATE_TRUNC values
+    const periodMap = {
+      'daily': 'day',
+      'weekly': 'week', 
+      'monthly': 'month',
+      'yearly': 'year'
+    };
+    const dateTruncPeriod = periodMap[period] || 'month';
 
     const isTempleSuperAdmin = !temple_id;
     const templeFilter = isTempleSuperAdmin ? '' : 'AND temple_id = $1';
@@ -302,27 +313,28 @@ export const getAnalytics = async (req, res) => {
 
     const bookingTrendsQuery = `
       SELECT 
-        DATE_TRUNC('${period}', created_at) as date,
+        DATE_TRUNC('${dateTruncPeriod}', created_at) as date,
         COUNT(*) as bookings,
-        COALESCE(SUM(payment_amount), 0) as revenue
+        COALESCE(SUM(amount), 0) as revenue
       FROM bookings 
       WHERE payment_status = 'completed'
       AND created_at >= DATE_TRUNC('month', CURRENT_DATE - INTERVAL '6 months')
       ${templeFilter}
-      GROUP BY DATE_TRUNC('${period}', created_at)
+      GROUP BY DATE_TRUNC('${dateTruncPeriod}', created_at)
       ORDER BY date ASC
     `;
     const bookingTrends = await sequelize.query(bookingTrendsQuery, { bind: queryParams, type: QueryTypes.SELECT });
 
     const servicePopularityQuery = `
       SELECT 
-        service_name as serviceName,
+        ts.name as serviceName,
         COUNT(*) as bookings,
-        COALESCE(SUM(payment_amount), 0) as revenue
-      FROM bookings 
-      WHERE payment_status = 'completed'
-      ${templeFilter}
-      GROUP BY service_name
+        COALESCE(SUM(b.amount), 0) as revenue
+      FROM bookings b
+      JOIN temple_services ts ON b.service_id = ts.id
+      WHERE b.payment_status = 'completed'
+      ${templeFilter.replace('temple_id', 'b.temple_id')}
+      GROUP BY ts.name
       ORDER BY COUNT(*) DESC
       LIMIT 5
     `;
@@ -349,14 +361,15 @@ export const getAnalytics = async (req, res) => {
 
     const revenueBreakdownQuery = `
       SELECT 
-        COALESCE(SUM(CASE WHEN service_type = 'puja' THEN payment_amount ELSE 0 END), 0) as pujas,
-        COALESCE(SUM(CASE WHEN service_type = 'donation' THEN payment_amount ELSE 0 END), 0) as donations,
-        COALESCE(SUM(CASE WHEN service_type = 'class' THEN payment_amount ELSE 0 END), 0) as classes,
-        COALESCE(SUM(CASE WHEN service_type = 'event' THEN payment_amount ELSE 0 END), 0) as events
-      FROM bookings 
-      WHERE payment_status = 'completed'
-      AND created_at >= DATE_TRUNC('month', CURRENT_DATE)
-      ${templeFilter}
+        COALESCE(SUM(CASE WHEN ts.category = 'puja' THEN b.amount ELSE 0 END), 0) as pujas,
+        COALESCE(SUM(CASE WHEN ts.category = 'donation' THEN b.amount ELSE 0 END), 0) as donations,
+        COALESCE(SUM(CASE WHEN ts.category = 'class' THEN b.amount ELSE 0 END), 0) as classes,
+        COALESCE(SUM(CASE WHEN ts.category = 'event' THEN b.amount ELSE 0 END), 0) as events
+      FROM bookings b
+      LEFT JOIN temple_services ts ON b.service_id = ts.id
+      WHERE b.payment_status = 'completed'
+      AND b.created_at >= DATE_TRUNC('month', CURRENT_DATE)
+      ${templeFilter.replace('temple_id', 'b.temple_id')}
     `;
     const revenueBreakdown = await sequelize.query(revenueBreakdownQuery, { bind: queryParams, type: QueryTypes.SELECT });
 

@@ -8,10 +8,10 @@ import { body, validationResult } from 'express-validator';
 const router = express.Router();
 
 // Generate JWT Token
-const generateToken = (userId, role, temple_id = null) => {
+const generateToken = (userId, role, temple_id = null, userType = 'admin') => {
   return jwt.sign(
-    { userId, role, temple_id },
-    process.env.JWT_SECRET || 'your-secret-key',
+    { userId, role, temple_id, userType },
+    process.env.JWT_SECRET || 'gaithri_admin_secret_key_2024',
     { expiresIn: process.env.JWT_EXPIRE || '30d' }
   );
 };
@@ -78,7 +78,7 @@ router.post('/login', [
       }
     );
 
-    const token = generateToken(admin.id, admin.role, admin.temple_id);
+    const token = generateToken(admin.id, admin.role, admin.temple_id, 'admin');
 
     // Remove password from response
     const { password_hash, reset_password_token, reset_password_expire, ...safeAdmin } = admin;
@@ -191,7 +191,7 @@ router.get('/me', async (req, res) => {
     }
 
     const token = authHeader.split(' ')[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'gaithri_admin_secret_key_2024');
 
     const adminQuery = `
       SELECT 

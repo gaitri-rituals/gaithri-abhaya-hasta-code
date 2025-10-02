@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS vendor_users (
   vendor_id INTEGER REFERENCES vendors(id) ON DELETE CASCADE,
   name VARCHAR(255) NOT NULL,
   email VARCHAR(255) UNIQUE NOT NULL,
-  phone VARCHAR(20) UNIQUE NOT NULL,
+  phone VARCHAR(20), -- Optional - dashboard users login with email/password
   password_hash VARCHAR(255) NOT NULL,
   role VARCHAR(50) NOT NULL DEFAULT 'vendor_admin',
   is_active BOOLEAN DEFAULT true,

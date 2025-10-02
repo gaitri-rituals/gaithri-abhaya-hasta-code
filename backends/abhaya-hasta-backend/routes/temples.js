@@ -1,6 +1,5 @@
 const express = require('express');
-const sequelize = require('../config/database.js');
-const { QueryTypes } = require('sequelize');
+const { executeQuery } = require('../utils/dbHelpers.js');
 
 const router = express.Router();
 
@@ -46,21 +45,15 @@ router.get('/', async (req, res) => {
         t.id,
         t.name,
         t.description,
-        t.street,
+        t.address,
         t.city,
         t.state,
-        t.zip_code,
         t.latitude,
         t.longitude,
         t.phone,
         t.email,
         t.primary_deity as deity,
-        t.secondary_deities,
-        t.facilities,
-        t.category,
         t.is_featured,
-        t.rating_average,
-        t.rating_count,
         COALESCE(
           (SELECT url FROM temple_images WHERE temple_id = t.id AND is_primary = true LIMIT 1),
           'https://images.unsplash.com/photo-1582407947304-fd86f028f716?w=800&h=600&fit=crop'
@@ -87,16 +80,13 @@ router.get('/', async (req, res) => {
         ) as timings
       FROM temples t
       ${whereClause}
-      ORDER BY t.is_featured DESC, t.rating_average DESC
+      ORDER BY t.is_featured DESC, t.id DESC
       LIMIT $${queryParams.length + 1}
     `;
     
     queryParams.push(parseInt(limit));
     
-    const temples = await sequelize.query(query, {
-      bind: queryParams,
-      type: QueryTypes.SELECT
-    });
+    const temples = await executeQuery(query, { bindings: queryParams });
     
     // Add calculated distance (mock for now, in real app would use user location)
     const templesWithDistance = temples.map(temple => ({
@@ -161,23 +151,16 @@ router.get('/:id', async (req, res) => {
         t.id,
         t.name,
         t.description,
-        t.street,
+        t.address,
         t.city,
         t.state,
-        t.zip_code,
         t.latitude,
         t.longitude,
         t.phone,
         t.email,
         t.website,
         t.primary_deity as deity,
-        t.secondary_deities,
-        t.facilities,
-        t.category,
         t.is_featured,
-        t.rating_average,
-        t.rating_count,
-        t.donation_url,
         ARRAY(
           SELECT json_build_object(
             'url', url,
@@ -226,10 +209,7 @@ router.get('/:id', async (req, res) => {
       WHERE t.id = $1 AND t.is_active = true
     `;
     
-    const temples = await sequelize.query(query, {
-      bind: [templeId],
-      type: QueryTypes.SELECT
-    });
+    const temples = await executeQuery(query, { bindings: [templeId] });
     
     if (temples.length === 0) {
       return res.status(404).json({ 
