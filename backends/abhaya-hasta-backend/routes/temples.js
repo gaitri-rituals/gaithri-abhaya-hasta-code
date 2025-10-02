@@ -240,4 +240,104 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+// @route   PUT /api/temples/:id
+// @desc    Update temple details
+// @access  Private (Admin)
+router.put('/:id', async (req, res) => {
+  try {
+    const templeId = req.params.id;
+    const { name, phone, address, description, city, state, email, website, primary_deity } = req.body;
+    
+    const updateFields = [];
+    const values = [];
+    let paramCount = 1;
+    
+    if (name !== undefined) {
+      updateFields.push(`name = $${paramCount}`);
+      values.push(name);
+      paramCount++;
+    }
+    if (phone !== undefined) {
+      updateFields.push(`phone = $${paramCount}`);
+      values.push(phone);
+      paramCount++;
+    }
+    if (address !== undefined) {
+      updateFields.push(`address = $${paramCount}`);
+      values.push(address);
+      paramCount++;
+    }
+    if (description !== undefined) {
+      updateFields.push(`description = $${paramCount}`);
+      values.push(description);
+      paramCount++;
+    }
+    if (city !== undefined) {
+      updateFields.push(`city = $${paramCount}`);
+      values.push(city);
+      paramCount++;
+    }
+    if (state !== undefined) {
+      updateFields.push(`state = $${paramCount}`);
+      values.push(state);
+      paramCount++;
+    }
+    if (email !== undefined) {
+      updateFields.push(`email = $${paramCount}`);
+      values.push(email);
+      paramCount++;
+    }
+    if (website !== undefined) {
+      updateFields.push(`website = $${paramCount}`);
+      values.push(website);
+      paramCount++;
+    }
+    if (primary_deity !== undefined) {
+      updateFields.push(`primary_deity = $${paramCount}`);
+      values.push(primary_deity);
+      paramCount++;
+    }
+    
+    if (updateFields.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'No fields to update'
+      });
+    }
+    
+    updateFields.push(`updated_at = CURRENT_TIMESTAMP`);
+    values.push(templeId);
+    
+    const query = `
+      UPDATE temples 
+      SET ${updateFields.join(', ')}
+      WHERE id = $${paramCount}
+      RETURNING *
+    `;
+    
+    const result = await executeQuery(query, { bindings: values });
+    
+    if (result.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Temple not found'
+      });
+    }
+    
+    res.json({
+      success: true,
+      message: 'Temple updated successfully',
+      data: result[0]
+    });
+    
+  } catch (error) {
+    console.error('Error updating temple:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+});
+
 module.exports = router;
