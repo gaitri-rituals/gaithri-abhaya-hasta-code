@@ -91,7 +91,7 @@ router.get('/:id', protect, async (req, res) => {
 router.post('/', protect, [
   body('name').trim().isLength({ min: 1 }).withMessage('Name is required'),
   body('role').trim().isLength({ min: 1 }).withMessage('Role is required'),
-  body('email').optional().isEmail().withMessage('Invalid email'),
+  body('email').optional({ nullable: true, checkFalsy: true }).isEmail().withMessage('Invalid email'),
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
