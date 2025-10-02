@@ -4,13 +4,32 @@ const { executeQuery } = require('../utils/dbHelpers.js');
 const router = express.Router();
 
 // @route   GET /api/temples
-// @desc    Get temples with filtering (matches ExploreTemples.jsx UI)
+// @desc    Get all temples (with search, category, city filters)
 // @access  Public
 router.get('/', async (req, res) => {
   try {
-    const { search, category, city, featured, limit = 50 } = req.query;
+    const { search, category, city, featured, limit = 50, includeInactive } = req.query;
     
-    let whereConditions = ['t.is_active = true'];
+    // Check if request is from admin (has Authorization header with admin token)
+    const authHeader = req.headers.authorization;
+    let isAdmin = false;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      try {
+        const token = authHeader.split(' ')[1];
+        const jwt = require('jsonwebtoken');
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'abhaya_hasta_jwt_secret_key_2024');
+        isAdmin = decoded.userType === 'admin' || decoded.role === 'super-admin';
+      } catch (error) {
+        // Invalid token, treat as public request
+        isAdmin = false;
+      }
+    }
+    
+    // For admin requests, include inactive temples
+    let whereConditions = [];
+    if (!isAdmin || includeInactive !== 'true') {
+      whereConditions.push('t.is_active = true');
+    }
     let queryParams = [];
     
     // Search functionality (matches UI search in ExploreTemples)
@@ -247,7 +266,7 @@ router.get('/:id', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const templeId = req.params.id;
-    const { name, phone, address, description, city, state, email, website, primary_deity } = req.body;
+    const { name, phone, address, description, city, state, email, website, primary_deity, isActive, is_active } = req.body;
     
     const updateFields = [];
     const values = [];
@@ -296,6 +315,12 @@ router.put('/:id', async (req, res) => {
     if (primary_deity !== undefined) {
       updateFields.push(`primary_deity = $${paramCount}`);
       values.push(primary_deity);
+      paramCount++;
+    }
+    // Handle both isActive (camelCase from frontend) and is_active (snake_case)
+    if (isActive !== undefined || is_active !== undefined) {
+      updateFields.push(`is_active = $${paramCount}`);
+      values.push(isActive !== undefined ? isActive : is_active);
       paramCount++;
     }
     
