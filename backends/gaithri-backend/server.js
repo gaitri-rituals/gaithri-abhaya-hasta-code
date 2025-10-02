@@ -23,7 +23,10 @@ const app = express();
 const PORT = process.env.PORT || 3002;
 
 // Security middleware
-app.use(helmet());
+// Configure helmet to allow localhost in development
+app.use(helmet({
+  contentSecurityPolicy: process.env.NODE_ENV === 'production' ? undefined : false,
+}));
 app.use(compression());
 
 // Rate limiting

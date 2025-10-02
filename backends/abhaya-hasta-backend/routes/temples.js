@@ -53,6 +53,7 @@ router.get('/', async (req, res) => {
         t.phone,
         t.email,
         t.primary_deity as deity,
+        t.is_active as "isActive",
         t.is_featured,
         COALESCE(
           (SELECT url FROM temple_images WHERE temple_id = t.id AND is_primary = true LIMIT 1),

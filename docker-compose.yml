@@ -26,7 +26,7 @@ services:
     container_name: abhaya_hasta_api
     environment:
       NODE_ENV: development
-      PORT: 3000
+      PORT: 3001
       DB_HOST: postgres
       DB_PORT: 5432
       DB_NAME: temple_ecosystem_db
@@ -36,9 +36,9 @@ services:
       JWT_EXPIRE: 30d
       RAZORPAY_KEY_ID: rzp_test_1234567890
       RAZORPAY_KEY_SECRET: test_secret_key_1234567890
-      FRONTEND_URL: http://localhost:8080
+      FRONTEND_URL: http://localhost:8081
     ports:
-      - "3000:3000"
+      - "3001:3001"
     depends_on:
       postgres:
         condition: service_healthy
@@ -64,7 +64,7 @@ services:
       DB_PASSWORD: temple_password123
       JWT_SECRET: gaithri_admin_secret_key_2024
       JWT_EXPIRE: 30d
-      FRONTEND_URL: http://localhost:5173
+      FRONTEND_URL: http://localhost:8080
     ports:
       - "3002:3002"
     depends_on:
@@ -85,7 +85,7 @@ services:
     environment:
       VITE_API_BASE_URL: http://localhost:3001/api
     ports:
-      - "5174:5174"
+      - "8081:5174"
     depends_on:
       - abhaya-hasta-backend
     networks:
@@ -101,7 +101,7 @@ services:
       dockerfile: Dockerfile
     container_name: gaithri_admin_ui
     environment:
-      VITE_API_BASE_URL: http://localhost:3000/api
+      VITE_API_BASE_URL: http://localhost:3002/api
     ports:
       - "8080:8080"
     depends_on:

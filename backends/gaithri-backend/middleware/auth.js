@@ -56,6 +56,20 @@ export const protect = async (req, res, next) => {
           type: QueryTypes.SELECT
         });
         user = vendorUsers[0];
+      } else if (decoded.userType === 'user') {
+        // Regular app users
+        const userQuery = `
+          SELECT 
+            u.id, u.name, u.email, u.phone, u.role,
+            'user' as user_type
+          FROM users u
+          WHERE u.id = $1
+        `;
+        const users = await sequelize.query(userQuery, {
+          bind: [decoded.userId],
+          type: QueryTypes.SELECT
+        });
+        user = users[0];
       }
 
       if (!user) {

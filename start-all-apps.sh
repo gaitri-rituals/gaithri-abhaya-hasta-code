@@ -85,7 +85,7 @@ done
 
 # Check Abhaya Hasta Frontend
 for i in {1..45}; do
-    if curl -s http://localhost:5174 > /dev/null; then
+    if curl -s http://localhost:8081 > /dev/null; then
         echo "✅ Abhaya Hasta Frontend UI is ready"
         break
     fi
@@ -99,7 +99,7 @@ done
 
 # Check Gaithri Frontend
 for i in {1..45}; do
-    if curl -s http://localhost:5173 > /dev/null; then
+    if curl -s http://localhost:8080 > /dev/null; then
         echo "✅ Gaithri Admin Dashboard UI is ready"
         break
     fi
@@ -116,8 +116,8 @@ echo "🎉 ALL SERVICES ARE RUNNING SUCCESSFULLY!"
 echo "======================================================================="
 echo ""
 echo "🌐 FRONTEND APPLICATIONS:"
-echo "   Abhaya Hasta (Consumer App):  http://localhost:5174"
-echo "   Gaithri Admin Dashboard:      http://localhost:5173"
+echo "   Abhaya Hasta (Consumer App):  http://localhost:8081"
+echo "   Gaithri Admin Dashboard:      http://localhost:8080"
 echo ""
 echo "📡 BACKEND APIs:"
 echo "   Abhaya Hasta API:             http://localhost:3001"

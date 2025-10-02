@@ -1,4 +1,5 @@
-const db = require('../config/database');
+import sequelize from '../config/database.js';
+import { QueryTypes } from 'sequelize';
 
 const storeController = {
   // Get all store items with filtering
@@ -33,11 +34,14 @@ const storeController = {
       query += ' ORDER BY si.created_at DESC LIMIT $' + (params.length + 1) + ' OFFSET $' + (params.length + 2);
       params.push(limit, offset);
       
-      const result = await db.query(query, params);
+      const result = await sequelize.query(query, { 
+        bind: params, 
+        type: QueryTypes.SELECT 
+      });
       
       res.json({
         success: true,
-        data: result.rows,
+        data: result,
         pagination: {
           limit: parseInt(limit),
           offset: parseInt(offset)
@@ -455,4 +459,4 @@ const storeController = {
   }
 };
 
-module.exports = storeController;
+export default storeController;

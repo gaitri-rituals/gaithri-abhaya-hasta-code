@@ -7,58 +7,130 @@ import QRCode from 'qrcode';
 
 const router = express.Router();
 
+// Helper function to determine temple category from deity
+const getTempleCategory = (deity) => {
+  if (!deity) return 'Other';
+  const deityLower = deity.toLowerCase();
+  
+  // Vaishnava (Vishnu, Krishna, Rama, Venkateswara)
+  if (deityLower.includes('vishnu') || deityLower.includes('krishna') || 
+      deityLower.includes('rama') || deityLower.includes('venkateswara') ||
+      deityLower.includes('balaji') || deityLower.includes('jagannath')) {
+    return 'Vaishnava';
+  }
+  
+  // Shaiva (Shiva)
+  if (deityLower.includes('shiva') || deityLower.includes('somnath') ||
+      deityLower.includes('mahadev')) {
+    return 'Shaiva';
+  }
+  
+  // Shakti (Devi, Durga, Kali, Meenakshi, Vaishno Devi)
+  if (deityLower.includes('devi') || deityLower.includes('durga') ||
+      deityLower.includes('kali') || deityLower.includes('meenakshi') ||
+      deityLower.includes('shakti') || deityLower.includes('vaishno')) {
+    return 'Shakti';
+  }
+  
+  // Ganapathi (Ganesh, Ganapati)
+  if (deityLower.includes('ganesh') || deityLower.includes('ganapati') ||
+      deityLower.includes('ganesha') || deityLower.includes('vinayaka')) {
+    return 'Ganapathi';
+  }
+  
+  return 'Other';
+};
+
 // @route   GET /api/temples
 // @desc    Get all temples
 // @access  Private
 router.get('/', protect, async (req, res) => {
   try {
+    // Regular users can see all active temples
+    // Admin/Temple users see based on their permissions
+    const isRegularUser = req.user.user_type === 'user';
     const isSuperAdmin = req.user.role === 'super_admin' || !req.user.temple_id;
 
     let whereClause = '';
     let bind = [];
-    if (!isSuperAdmin && req.user.temple_id) {
+    
+    if (isRegularUser) {
+      // Regular users only see active temples
+      whereClause = 'WHERE is_active = true';
+    } else if (!isSuperAdmin && req.user.temple_id) {
       whereClause = 'WHERE id = $1';
       bind = [req.user.temple_id];
     }
 
     const templesRows = await sequelize.query(
-      `SELECT id, name, description, street, city, state, zip_code, country,
-              latitude, longitude, phone, email, website, donation_url, qr_code,
-              is_active, facilities, created_at, updated_at
+      `SELECT id, name, description, primary_deity, address, city, state, country,
+              latitude, longitude, phone, email, website, is_active, is_featured,
+              created_at, updated_at
        FROM temples
        ${whereClause}
        ORDER BY created_at DESC`,
       { bind, type: QueryTypes.SELECT }
     );
 
-    const temples = templesRows.map((t) => ({
-      id: String(t.id),
-      name: t.name,
-      description: t.description,
-      address: {
-        street: t.street,
-        city: t.city,
-        state: t.state,
-        country: t.country,
-        postalCode: t.zip_code,
-        coordinates: {
-          latitude: Number(t.latitude),
-          longitude: Number(t.longitude)
-        }
-      },
-      contact: {
-        phone: t.phone,
-        email: t.email,
-        website: t.website || ''
-      },
-      timings: {},
-      images: [],
-      amenities: Array.isArray(t.facilities) ? t.facilities : [],
-      isActive: !!t.is_active,
-      adminId: '',
-      createdAt: t.created_at,
-      updatedAt: t.updated_at
-    }));
+    // Get ratings for all temples
+    const ratingsData = await sequelize.query(
+      `SELECT temple_id, 
+              AVG(rating) as average_rating,
+              COUNT(*) as total_reviews
+       FROM reviews 
+       WHERE is_approved = true
+       GROUP BY temple_id`,
+      { type: QueryTypes.SELECT }
+    );
+
+    const ratingsMap = {};
+    ratingsData.forEach(r => {
+      ratingsMap[r.temple_id] = {
+        rating: Number(r.average_rating).toFixed(1),
+        totalReviews: Number(r.total_reviews)
+      };
+    });
+
+    const temples = templesRows.map((t) => {
+      const templeLat = Number(t.latitude) || 0;
+      const templeLng = Number(t.longitude) || 0;
+      const ratings = ratingsMap[t.id] || { rating: 0, totalReviews: 0 };
+
+      return {
+        id: String(t.id),
+        name: t.name,
+        description: t.description,
+        primaryDeity: t.primary_deity,
+        category: getTempleCategory(t.primary_deity),
+        address: {
+          full: t.address,
+          city: t.city,
+          state: t.state,
+          country: t.country,
+          coordinates: {
+            latitude: templeLat,
+            longitude: templeLng
+          }
+        },
+        contact: {
+          phone: t.phone,
+          email: t.email,
+          website: t.website || ''
+        },
+        rating: Number(ratings.rating),
+        totalReviews: ratings.totalReviews,
+        distance: null,
+        status: t.is_active ? 'active' : 'suspended',
+        isActive: !!t.is_active,
+        isFeatured: !!t.is_featured,
+        timings: {},
+        images: [],
+        amenities: Array.isArray(t.facilities) ? t.facilities : [],
+        adminId: '',
+        createdAt: t.created_at,
+        updatedAt: t.updated_at
+      };
+    });
 
     res.json({ success: true, temples });
   } catch (error) {

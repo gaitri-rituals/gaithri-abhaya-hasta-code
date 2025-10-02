@@ -1,20 +1,21 @@
 import express from 'express';
 import { protect, hasPermission } from '../middleware/auth.js';
+import ritualsController from '../controllers/ritualsController.js';
 
 const router = express.Router();
 
-// @route   GET /api/rituals
-// @desc    Get all rituals
-// @access  Private
-router.get('/', protect, async (req, res) => {
-  res.json({ message: 'Get rituals - To be implemented' });
-});
+// Public routes (browsing rituals)
+router.get('/categories', ritualsController.getRitualCategories);
+router.get('/packages-config', ritualsController.getPackageConfigurations);
+router.get('/catering-config', ritualsController.getCateringConfigurations);
+router.get('/addons-config', ritualsController.getAddOnServicesConfigurations);
+router.get('/', ritualsController.getAllRituals);
+router.get('/category/:category', ritualsController.getRitualsByCategory);
+router.get('/:id', ritualsController.getRitualById);
+router.get('/:ritual_id/packages', ritualsController.getRitualPackages);
 
-// @route   POST /api/rituals
-// @desc    Create new ritual
-// @access  Private
-router.post('/', protect, hasPermission('manage_rituals'), async (req, res) => {
-  res.json({ message: 'Create ritual - To be implemented' });
-});
+// Protected booking routes (require authentication)
+router.post('/bookings', protect, ritualsController.createRitualBooking);
+router.get('/bookings/my-bookings', protect, ritualsController.getUserRitualBookings);
 
 export default router;
