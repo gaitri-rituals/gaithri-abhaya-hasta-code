@@ -142,7 +142,7 @@ router.get('/', protect, async (req, res) => {
 // @route   GET /api/temples/:id
 // @desc    Get single temple
 // @access  Private
-router.get('/:id', protect, belongsToTemple, async (req, res) => {
+router.get('/:id', protect, async (req, res) => {
   try {
     const templeId = req.params.id;
     const rows = await sequelize.query(
