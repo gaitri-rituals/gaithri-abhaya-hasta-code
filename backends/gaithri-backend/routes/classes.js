@@ -1,14 +1,36 @@
 import express from 'express';
 import { protect, hasPermission } from '../middleware/auth.js';
+import {
+  getAllClasses,
+  getClassById,
+  createClass,
+  updateClass,
+  deleteClass,
+  getClassStats,
+  getClassEnrollments,
+  enrollInClass
+} from '../controllers/classesController.js';
 
 const router = express.Router();
 
-router.get('/', protect, hasPermission('manage_classes'), async (req, res) => {
-  res.json({ message: 'Get classes - To be implemented' });
-});
+// IMPORTANT: Specific routes must come BEFORE parameterized routes
+// Stats routes must be before /:id route
 
-router.post('/', protect, hasPermission('manage_classes'), async (req, res) => {
-  res.json({ message: 'Create class - To be implemented' });
-});
+// TODO: For production, add protect middleware back to GET routes
+// Public routes (temporarily without auth for development)
+router.get('/stats', getClassStats);
+router.get('/stats/:templeId', getClassStats);
+router.get('/', getAllClasses);
+router.get('/:id', getClassById);
+router.get('/:id/enrollments', getClassEnrollments);
+
+// Protected enrollment route
+router.post('/:id/enroll', protect, enrollInClass);
+
+// Admin routes - temporarily without auth for development
+// TODO: For production, add back: protect, hasPermission('manage_classes')
+router.post('/', createClass);
+router.put('/:id', updateClass);
+router.delete('/:id', deleteClass);
 
 export default router;

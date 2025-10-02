@@ -1,6 +1,5 @@
 const express = require('express');
-const sequelize = require('../config/database.js');
-const { QueryTypes } = require('sequelize');
+const { pool } = require('../config/database.js');
 const { body, validationResult } = require('express-validator');
 const { protect } = require('../middleware/auth.js');
 
@@ -48,19 +47,11 @@ router.get('/', async (req, res) => {
       SELECT 
         c.*,
         t.name as temple_name,
-        t.street, t.city, t.state,
+        t.city, t.state,
         t.phone as temple_phone,
-        COALESCE(
-          (SELECT url FROM temple_images WHERE temple_id = c.temple_id AND is_primary = true LIMIT 1),
-          'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=800&h=600&fit=crop'
-        ) as temple_image,
-        (c.max_students - c.current_students) as available_spots,
-        CASE 
-          WHEN c.current_students >= c.max_students THEN 'full'
-          WHEN c.current_students >= (c.max_students * 0.8) THEN 'filling_fast'
-          ELSE 'available'
-        END as availability_status
-      FROM classes c
+        (SELECT COUNT(*) FROM class_enrollments WHERE class_id = c.id AND status = 'active') as enrolled_count,
+        (c.capacity - (SELECT COUNT(*) FROM class_enrollments WHERE class_id = c.id AND status = 'active')) as available_spots
+      FROM temple_classes c
       JOIN temples t ON c.temple_id = t.id
       ${whereClause}
       ORDER BY c.created_at DESC
@@ -69,20 +60,53 @@ router.get('/', async (req, res) => {
 
     queryParams.push(parseInt(limit), parseInt(offset));
 
-    const classes = await sequelize.query(classesQuery, {
-      bind: queryParams,
-      type: QueryTypes.SELECT
-    });
+    const result = await pool.query(classesQuery, queryParams);
 
     res.json({
       success: true,
       message: 'Classes retrieved successfully',
-      data: classes,
-      count: classes.length
+      data: result.rows,
+      count: result.rows.length
     });
 
   } catch (error) {
     console.error('Error fetching classes:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+});
+
+// @route   GET /api/classes/stats
+// @desc    Get class statistics
+// @access  Public
+router.get('/stats', async (req, res) => {
+  try {
+    const statsQuery = `
+      SELECT 
+        COUNT(*) as total_classes,
+        COUNT(CASE WHEN is_active = true THEN 1 END) as active_classes,
+        COUNT(DISTINCT CASE WHEN is_active = true THEN instructor END) as total_instructors,
+        COALESCE((SELECT COUNT(*) FROM class_enrollments ce 
+                  JOIN temple_classes tc ON ce.class_id = tc.id 
+                  WHERE ce.status = 'active' AND tc.is_active = true), 0) as total_enrollments,
+        COALESCE(AVG(CASE WHEN is_active = true THEN capacity END), 0) as average_capacity
+      FROM temple_classes
+      WHERE is_active = true
+    `;
+
+    const result = await pool.query(statsQuery);
+    
+    res.json({
+      success: true,
+      message: 'Class statistics retrieved successfully',
+      data: result.rows[0]
+    });
+
+  } catch (error) {
+    console.error('Error fetching class stats:', error);
     res.status(500).json({
       success: false,
       message: 'Server error',
@@ -103,66 +127,36 @@ router.get('/:id', async (req, res) => {
         c.*,
         t.name as temple_name,
         t.description as temple_description,
-        t.street, t.city, t.state,
+        t.city, t.state,
         t.phone as temple_phone,
         t.email as temple_email,
-        ARRAY(
-          SELECT json_build_object(
-            'url', url,
-            'alt_text', alt_text,
-            'is_primary', is_primary
-          )
-          FROM temple_images 
-          WHERE temple_id = c.temple_id 
-          ORDER BY is_primary DESC
-        ) as temple_images,
-        ARRAY(
-          SELECT json_build_object(
-            'day_of_week', day_of_week,
-            'open_time', open_time,
-            'close_time', close_time,
-            'is_holiday', is_holiday
-          )
-          FROM temple_timings 
-          WHERE temple_id = c.temple_id
-        ) as temple_timings,
-        (c.max_students - c.current_students) as available_spots,
-        CASE 
-          WHEN c.current_students >= c.max_students THEN 'full'
-          WHEN c.current_students >= (c.max_students * 0.8) THEN 'filling_fast'
-          ELSE 'available'
-        END as availability_status
-      FROM classes c
+        (SELECT COUNT(*) FROM class_enrollments WHERE class_id = c.id AND status = 'active') as enrolled_count,
+        (c.capacity - (SELECT COUNT(*) FROM class_enrollments WHERE class_id = c.id AND status = 'active')) as available_spots
+      FROM temple_classes c
       JOIN temples t ON c.temple_id = t.id
       WHERE c.id = $1 AND c.is_active = true
     `;
 
-    const classes = await sequelize.query(classQuery, {
-      bind: [classId],
-      type: QueryTypes.SELECT
-    });
+    const result = await pool.query(classQuery, [classId]);
 
-    if (classes.length === 0) {
+    if (result.rows.length === 0) {
       return res.status(404).json({
         success: false,
         message: 'Class not found'
       });
     }
 
-    const classData = classes[0];
+    const classData = result.rows[0];
 
     // Get recent enrollments for social proof
-    const recentEnrollments = await sequelize.query(
+    const recentEnrollmentsResult = await pool.query(
       `SELECT u.name, ce.created_at 
        FROM class_enrollments ce
        JOIN users u ON ce.user_id = u.id
        WHERE ce.class_id = $1 AND ce.status = 'active'
        ORDER BY ce.created_at DESC
        LIMIT 5`,
-      {
-        bind: [classId],
-        type: QueryTypes.SELECT
-      }
+      [classId]
     );
 
     res.json({
@@ -170,7 +164,7 @@ router.get('/:id', async (req, res) => {
       message: 'Class details retrieved successfully',
       data: {
         ...classData,
-        recent_enrollments: recentEnrollments
+        recent_enrollments: recentEnrollmentsResult.rows
       }
     });
 
@@ -209,27 +203,30 @@ router.post('/:id/enroll', protect, [
     // Check if class exists and has available spots
     const classQuery = `
       SELECT c.*, t.name as temple_name
-      FROM classes c
+      FROM temple_classes c
       JOIN temples t ON c.temple_id = t.id
       WHERE c.id = $1 AND c.is_active = true
     `;
 
-    const classes = await sequelize.query(classQuery, {
-      bind: [classId],
-      type: QueryTypes.SELECT
-    });
+    const classResult = await pool.query(classQuery, [classId]);
 
-    if (classes.length === 0) {
+    if (classResult.rows.length === 0) {
       return res.status(404).json({
         success: false,
         message: 'Class not found or not active'
       });
     }
 
-    const classData = classes[0];
+    const classData = classResult.rows[0];
+
+    // Check enrolled count
+    const enrolledCountResult = await pool.query(
+      'SELECT COUNT(*) as count FROM class_enrollments WHERE class_id = $1 AND status = $2',
+      [classId, 'active']
+    );
 
     // Check if class is full
-    if (classData.current_students >= classData.max_students) {
+    if (parseInt(enrolledCountResult.rows[0].count) >= classData.capacity) {
       return res.status(400).json({
         success: false,
         message: 'Class is full. Please try another class or wait for the next session.'
@@ -237,15 +234,12 @@ router.post('/:id/enroll', protect, [
     }
 
     // Check if user is already enrolled
-    const existingEnrollment = await sequelize.query(
+    const existingEnrollmentResult = await pool.query(
       'SELECT id FROM class_enrollments WHERE class_id = $1 AND user_id = $2 AND status = $3',
-      {
-        bind: [classId, user_id, 'active'],
-        type: QueryTypes.SELECT
-      }
+      [classId, user_id, 'active']
     );
 
-    if (existingEnrollment.length > 0) {
+    if (existingEnrollmentResult.rows.length > 0) {
       return res.status(400).json({
         success: false,
         message: 'You are already enrolled in this class'
@@ -253,9 +247,11 @@ router.post('/:id/enroll', protect, [
     }
 
     // Start transaction
-    const transaction = await sequelize.transaction();
+    const client = await pool.connect();
 
     try {
+      await client.query('BEGIN');
+      
       // Create enrollment
       const enrollmentQuery = `
         INSERT INTO class_enrollments (
@@ -266,25 +262,15 @@ router.post('/:id/enroll', protect, [
         ) RETURNING *
       `;
 
-      const enrollments = await sequelize.query(enrollmentQuery, {
-        bind: [classId, user_id, emergency_contact_name, emergency_contact_phone, notes, 'active'],
-        type: QueryTypes.INSERT,
-        transaction
-      });
-
-      // Update class current_students count
-      await sequelize.query(
-        'UPDATE classes SET current_students = current_students + 1 WHERE id = $1',
-        {
-          bind: [classId],
-          type: QueryTypes.UPDATE,
-          transaction
-        }
+      const enrollmentResult = await client.query(enrollmentQuery, 
+        [classId, user_id, emergency_contact_name, emergency_contact_phone, notes, 'active']
       );
 
-      await transaction.commit();
+      // No need to update count as we calculate it dynamically from enrollments
 
-      const enrollment = enrollments[0][0];
+      await client.query('COMMIT');
+
+      const enrollment = enrollmentResult.rows[0];
 
       res.status(201).json({
         success: true,
@@ -303,8 +289,10 @@ router.post('/:id/enroll', protect, [
       });
 
     } catch (error) {
-      await transaction.rollback();
+      await client.query('ROLLBACK');
       throw error;
+    } finally {
+      client.release();
     }
 
   } catch (error) {
@@ -338,15 +326,12 @@ router.put('/:id/cancel-enrollment', protect, [
     const { reason } = req.body;
 
     // Check if enrollment exists
-    const existingEnrollment = await sequelize.query(
+    const existingEnrollmentResult = await pool.query(
       'SELECT id FROM class_enrollments WHERE class_id = $1 AND user_id = $2 AND status = $3',
-      {
-        bind: [classId, user_id, 'active'],
-        type: QueryTypes.SELECT
-      }
+      [classId, user_id, 'active']
     );
 
-    if (existingEnrollment.length === 0) {
+    if (existingEnrollmentResult.rows.length === 0) {
       return res.status(404).json({
         success: false,
         message: 'Active enrollment not found'
@@ -354,35 +339,25 @@ router.put('/:id/cancel-enrollment', protect, [
     }
 
     // Start transaction
-    const transaction = await sequelize.transaction();
+    const client = await pool.connect();
 
     try {
+      await client.query('BEGIN');
+      
       // Update enrollment status
-      await sequelize.query(
+      await client.query(
         `UPDATE class_enrollments 
          SET status = 'cancelled', 
              cancellation_reason = $1,
              cancelled_at = CURRENT_TIMESTAMP,
              updated_at = CURRENT_TIMESTAMP
          WHERE id = $2`,
-        {
-          bind: [reason, existingEnrollment[0].id],
-          type: QueryTypes.UPDATE,
-          transaction
-        }
+        [reason, existingEnrollmentResult.rows[0].id]
       );
 
-      // Update class current_students count
-      await sequelize.query(
-        'UPDATE classes SET current_students = current_students - 1 WHERE id = $1',
-        {
-          bind: [classId],
-          type: QueryTypes.UPDATE,
-          transaction
-        }
-      );
+      // No need to update count as we calculate it dynamically from enrollments
 
-      await transaction.commit();
+      await client.query('COMMIT');
 
       res.json({
         success: true,
@@ -390,8 +365,10 @@ router.put('/:id/cancel-enrollment', protect, [
       });
 
     } catch (error) {
-      await transaction.rollback();
+      await client.query('ROLLBACK');
       throw error;
+    } finally {
+      client.release();
     }
 
   } catch (error) {
@@ -399,6 +376,226 @@ router.put('/:id/cancel-enrollment', protect, [
     res.status(500).json({
       success: false,
       message: 'Server error during enrollment cancellation',
+      error: error.message
+    });
+  }
+});
+
+// @route   POST /api/classes
+// @desc    Create a new class
+// @access  Private (Admin only)
+router.post('/', protect, [
+  body('temple_id').isInt().withMessage('Valid temple ID is required'),
+  body('name').trim().isLength({ min: 1, max: 200 }).withMessage('Name is required and must be less than 200 characters'),
+  body('instructor').trim().isLength({ min: 1, max: 200 }).withMessage('Instructor name is required'),
+  body('schedule').trim().isLength({ min: 1 }).withMessage('Schedule is required'),
+  body('price').optional().isFloat({ min: 0 }).withMessage('Price must be a positive number'),
+  body('capacity').optional().isInt({ min: 1 }).withMessage('Capacity must be a positive integer'),
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation errors',
+        errors: errors.array()
+      });
+    }
+
+    const { temple_id, name, description, instructor, schedule, price, capacity, is_active } = req.body;
+
+    // Check if temple exists
+    const templeCheck = await pool.query(
+      'SELECT id FROM temples WHERE id = $1',
+      [temple_id]
+    );
+
+    if (templeCheck.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Temple not found'
+      });
+    }
+
+    // Insert the new class
+    const insertQuery = `
+      INSERT INTO temple_classes (
+        temple_id, name, description, instructor, schedule, 
+        price, capacity, is_active, created_at
+      ) VALUES (
+        $1, $2, $3, $4, $5, $6, $7, $8, CURRENT_TIMESTAMP
+      ) RETURNING *
+    `;
+
+    const result = await pool.query(insertQuery, [
+      temple_id,
+      name,
+      description || null,
+      instructor,
+      schedule,
+      price || 0,
+      capacity || 30,
+      is_active !== false
+    ]);
+
+    res.status(201).json({
+      success: true,
+      message: 'Class created successfully',
+      data: result.rows[0]
+    });
+
+  } catch (error) {
+    console.error('Error creating class:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+});
+
+// @route   PUT /api/classes/:id
+// @desc    Update a class
+// @access  Private (Admin only)
+router.put('/:id', protect, async (req, res) => {
+  try {
+    const classId = req.params.id;
+    const { name, description, instructor, schedule, price, capacity, is_active } = req.body;
+
+    // Check if class exists
+    const classCheck = await pool.query(
+      'SELECT id FROM temple_classes WHERE id = $1',
+      [classId]
+    );
+
+    if (classCheck.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Class not found'
+      });
+    }
+
+    const updateFields = [];
+    const values = [];
+    let paramCount = 1;
+
+    if (name !== undefined) {
+      updateFields.push(`name = $${paramCount}`);
+      values.push(name);
+      paramCount++;
+    }
+    if (description !== undefined) {
+      updateFields.push(`description = $${paramCount}`);
+      values.push(description);
+      paramCount++;
+    }
+    if (instructor !== undefined) {
+      updateFields.push(`instructor = $${paramCount}`);
+      values.push(instructor);
+      paramCount++;
+    }
+    if (schedule !== undefined) {
+      updateFields.push(`schedule = $${paramCount}`);
+      values.push(schedule);
+      paramCount++;
+    }
+    if (price !== undefined) {
+      updateFields.push(`price = $${paramCount}`);
+      values.push(price);
+      paramCount++;
+    }
+    if (capacity !== undefined) {
+      updateFields.push(`capacity = $${paramCount}`);
+      values.push(capacity);
+      paramCount++;
+    }
+    if (is_active !== undefined) {
+      updateFields.push(`is_active = $${paramCount}`);
+      values.push(is_active);
+      paramCount++;
+    }
+
+    if (updateFields.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'No fields to update'
+      });
+    }
+
+    updateFields.push(`updated_at = CURRENT_TIMESTAMP`);
+    values.push(classId);
+
+    const updateQuery = `
+      UPDATE temple_classes 
+      SET ${updateFields.join(', ')}
+      WHERE id = $${paramCount}
+      RETURNING *
+    `;
+
+    const result = await pool.query(updateQuery, values);
+
+    res.json({
+      success: true,
+      message: 'Class updated successfully',
+      data: result.rows[0]
+    });
+
+  } catch (error) {
+    console.error('Error updating class:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+});
+
+// @route   DELETE /api/classes/:id
+// @desc    Delete a class
+// @access  Private (Admin only)
+router.delete('/:id', protect, async (req, res) => {
+  try {
+    const classId = req.params.id;
+
+    // Check if class exists
+    const classCheck = await pool.query(
+      'SELECT id FROM temple_classes WHERE id = $1',
+      [classId]
+    );
+
+    if (classCheck.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Class not found'
+      });
+    }
+
+    // Check if there are active enrollments
+    const enrollmentCheck = await pool.query(
+      'SELECT COUNT(*) as count FROM class_enrollments WHERE class_id = $1 AND status = $2',
+      [classId, 'active']
+    );
+
+    if (parseInt(enrollmentCheck.rows[0].count) > 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot delete class with active enrollments. Please cancel all enrollments first.'
+      });
+    }
+
+    // Delete the class
+    await pool.query('DELETE FROM temple_classes WHERE id = $1', [classId]);
+
+    res.json({
+      success: true,
+      message: 'Class deleted successfully'
+    });
+
+  } catch (error) {
+    console.error('Error deleting class:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
       error: error.message
     });
   }

@@ -28,7 +28,7 @@ const { swaggerUi, specs } = require('./config/swagger.js');
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3000;
 
 // Security middleware
 app.use(helmet());
@@ -61,6 +61,14 @@ app.use(cors({
   },
   credentials: true
 }));
+
+// Disable caching for API responses
+app.use((req, res, next) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  res.set('Pragma', 'no-cache');
+  res.set('Expires', '0');
+  next();
+});
 
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
