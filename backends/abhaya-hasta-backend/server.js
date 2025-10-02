@@ -24,6 +24,7 @@ const ritualCategoryRoutes = require('./routes/ritualCategories.js');
 const eventsRoutes = require('./routes/events.js');
 const vendorsRoutes = require('./routes/vendors.js');
 const staffRoutes = require('./routes/staff.js');
+const expensesRoutes = require('./routes/expenses.js');
 const { swaggerUi, specs } = require('./config/swagger.js');
 
 dotenv.config();
@@ -111,6 +112,7 @@ app.use('/api/ritual-categories', ritualCategoryRoutes);
 app.use('/api/events', eventsRoutes);
 app.use('/api/vendors', vendorsRoutes);
 app.use('/api/staff', staffRoutes);
+app.use('/api/expenses', expensesRoutes);
 
 // Scheduled tasks
 cron.schedule('0 0 * * *', () => {
