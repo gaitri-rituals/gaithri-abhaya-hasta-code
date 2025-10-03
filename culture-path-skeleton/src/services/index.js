@@ -7,6 +7,7 @@ export { default as cartApi } from './cartApi';
 export { default as paymentsApi } from './paymentsApi';
 export { default as ritualsApi } from './ritualsApi';
 export { default as storeApi } from './storeApi';
+export { default as referenceAPI } from './referenceAPI';
 
 // Re-export for convenience
 export const api = {
@@ -17,6 +18,7 @@ export const api = {
   payments: paymentsApi,
   rituals: ritualsApi,
   store: storeApi,
+  reference: referenceAPI,
 };
 
 export default api;

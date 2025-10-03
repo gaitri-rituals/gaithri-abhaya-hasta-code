@@ -20,6 +20,7 @@ import useBasketStore from '../store/basketStore';
 import { toast } from 'sonner';
 import InnerPageWrapper from '../components/InnerPageWrapper';
 import { templeAPI, referenceAPI } from '../services/api';
+import DevoteeDetailsForm from '../components/DevoteeDetailsForm';
 
 const TempleDetails = () => {
   const { id } = useParams();
@@ -50,6 +51,7 @@ const TempleDetails = () => {
   const [gothras, setGothras] = useState([]);
   const [selectedAmounts, setSelectedAmounts] = useState({}); // Track selected amounts for each service
   const [customAmountModal, setCustomAmountModal] = useState({ isOpen: false, service: null, amount: '' });
+  const [devoteeDetailsModal, setDevoteeDetailsModal] = useState({ isOpen: false, service: null });
   const [bookingDate, setBookingDate] = useState(() => {
     const today = new Date();
     return today.toISOString().split('T')[0];
@@ -225,8 +227,8 @@ const TempleDetails = () => {
           referenceAPI.getGothras()
         ]);
         
-        setNakshatras(nakshatrasResponse?.nakshatras || []);
-        setGothras(gothrasResponse?.gothras || []);
+        setNakshatras(nakshatrasResponse?.data?.map(item => item.name) || []);
+        setGothras(gothrasResponse?.data?.map(item => item.name) || []);
       } catch (err) {
         console.error('Failed to fetch reference data:', err);
       }
@@ -267,6 +269,11 @@ const TempleDetails = () => {
     }));
   };
 
+  const handleAbhishekaArchanaServiceClick = (service) => {
+    // For Abhisheka/Archana services, open devotee details modal first
+    setDevoteeDetailsModal({ isOpen: true, service });
+  };
+
   const handleAddToCart = async (service) => {
     const selectedAmount = selectedAmounts[service.id];
     if (!selectedAmount) {
@@ -274,6 +281,36 @@ const TempleDetails = () => {
       return;
     }
 
+    // Check if this is a Dakshiney service (should add directly to cart)
+    const isDakshineyService = service.category?.toLowerCase() === 'donation' || 
+                               service.name?.toLowerCase().includes('dakshiney') ||
+                               service.category?.toLowerCase() === 'dakshiney';
+
+    // Check if this is an Abhisheka/Archana service (should require devotee details)
+    const isAbhishekaArchanaService = service.category?.toLowerCase() === 'abhisheka' || 
+                                      service.category?.toLowerCase() === 'archana' ||
+                                      service.name?.toLowerCase().includes('abhisheka') ||
+                                      service.name?.toLowerCase().includes('archana');
+
+    if (isDakshineyService) {
+      // For Dakshiney services, add directly to cart without devotee details
+      await addServiceToCart(service, selectedAmount, []);
+    } else if (isAbhishekaArchanaService) {
+      // For Abhisheka/Archana services, open devotee details modal
+      setDevoteeDetailsModal({ isOpen: true, service });
+    } else {
+      // For other services, check if they require devotee details
+      const requiresDevoteeDetails = service.requires_nakshatra || service.requires_gothra;
+      
+      if (requiresDevoteeDetails) {
+        setDevoteeDetailsModal({ isOpen: true, service });
+      } else {
+        await addServiceToCart(service, selectedAmount, []);
+      }
+    }
+  };
+
+  const addServiceToCart = async (service, amount, devoteeDetails = []) => {
     try {
       // Format data according to backend API expectations
       const basketItem = {
@@ -281,12 +318,12 @@ const TempleDetails = () => {
         temple_id: temple.id,
         service_id: service.id,
         quantity: 1,
-        amount: selectedAmount,
-        totalAmount: selectedAmount,
-        booking_date: new Date().toISOString().split('T')[0],
-        booking_time: '10:00:00',
+        amount: amount,
+        totalAmount: amount,
+        booking_date: bookingDate,
+        booking_time: bookingTime + ':00',
         special_requests: '',
-        devotee_details: [],
+        devotee_details: devoteeDetails,
         serviceName: service.name,
         templeName: temple.name,
         category: service.category
@@ -295,17 +332,42 @@ const TempleDetails = () => {
       await addToBasket(basketItem);
       
       // Show success feedback
-      toast.success(`Added ${service.name} (₹${selectedAmount}) to basket`);
+      toast.success(`Added ${service.name} (₹${amount}) to basket`);
       
       // Clear selected amount after adding to cart
       setSelectedAmounts(prev => ({
         ...prev,
         [service.id]: null
       }));
+
+      // Close devotee details modal if open
+      setDevoteeDetailsModal({ isOpen: false, service: null });
     } catch (error) {
       console.error('Error adding to basket:', error);
       toast.error('Failed to add item to basket. Please try again.');
     }
+  };
+
+  const handleDevoteeDetailsSubmit = (formData) => {
+    const { service } = devoteeDetailsModal;
+    
+    // Handle new form structure that includes multiple devotees and amount
+    const devoteeDetails = formData.devoteeDetails || [formData];
+    const amount = formData.amount || service.price;
+    
+    if (!amount) {
+      toast.error('Please select an amount');
+      return;
+    }
+
+    // Ensure devoteeDetails is an array
+    const devoteeArray = Array.isArray(devoteeDetails) ? devoteeDetails : [devoteeDetails];
+
+    // Add service to cart with multiple devotee details
+    addServiceToCart(service, amount, devoteeArray);
+    
+    // Close the modal
+    setDevoteeDetailsModal({ isOpen: false, service: null });
   };
 
   const handleCustomAmountClick = (service) => {
@@ -363,6 +425,12 @@ const TempleDetails = () => {
     const isFlexiblePricing = service.pricing_type === 'flexible' && service.pricing_options;
     const presets = isFlexiblePricing ? service.pricing_options.presets : [];
     
+    // Check if this is an Abhisheka/Archana service
+    const isAbhishekaArchanaService = service.category?.toLowerCase() === 'abhisheka' || 
+                                      service.category?.toLowerCase() === 'archana' ||
+                                      service.name?.toLowerCase().includes('abhisheka') ||
+                                      service.name?.toLowerCase().includes('archana');
+    
     return (
       <motion.div
         key={service.id}
@@ -380,114 +448,146 @@ const TempleDetails = () => {
           <p className="text-muted-foreground text-sm mb-3 line-clamp-2">{service.description}</p>
         )}
 
-        {isFlexiblePricing ? (
+        {/* Special handling for Abhisheka/Archana services */}
+        {isAbhishekaArchanaService ? (
           <div className="space-y-3">
-            {/* Amount Selection Badges */}
-            <div className="flex flex-wrap gap-2">
-              {presets.map((amount) => (
-                <motion.button
-                  key={amount}
-                  className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                    selectedAmounts[service.id] === amount
-                      ? 'bg-primary text-white'
-                      : 'bg-primary/10 hover:bg-primary hover:text-white text-primary'
-                  }`}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => handleAmountSelection(service, amount)}
-                >
-                  ₹{amount}
-                </motion.button>
-              ))}
-              {service.pricing_options.allowCustom && (
-                <motion.button
-                  className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                    selectedAmounts[service.id] && !presets.includes(selectedAmounts[service.id])
-                      ? 'bg-gray-600 text-white'
-                      : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
-                  }`}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => handleCustomAmountClick(service)}
-                >
-                  {selectedAmounts[service.id] && !presets.includes(selectedAmounts[service.id])
-                    ? `₹${selectedAmounts[service.id]}`
-                    : 'Other'
-                  }
-                </motion.button>
-              )}
-            </div>
-            
-            {/* Add to Cart Button - appears when amount is selected */}
-            {/* {selectedAmounts[service.id] && ( */}
-              <motion.button
-                className="w-full bg-primary text-white py-2 px-4 rounded-lg font-medium hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => handleAddToCart(service)}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.2 }}
-                disabled={!selectedAmounts}
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.1 5M7 13v6a2 2 0 002 2h6a2 2 0 002-2v-6" />
-                </svg>
-                Add to Cart - ₹{selectedAmounts[service.id]}
-              </motion.button>
-            {/* )} */}
-          </div>
-        ) : (
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
+            {isFlexiblePricing && (
+              <div className="text-sm text-muted-foreground">
+                Available amounts: {presets.map(amount => `₹${amount}`).join(', ')}
+                {service.pricing_options.allowCustom && ' + Custom amount'}
+              </div>
+            )}
+            {!isFlexiblePricing && (
               <div className="flex items-center text-primary font-semibold">
                 <IndianRupee size={16} />
                 <span>{service.price}</span>
               </div>
-              {service.duration && service.category !== 'Donation' && (
-                <div className="flex items-center text-muted-foreground text-sm">
-                  <Clock size={14} className="mr-1" />
-                  <span>{service.duration} min</span>
-                </div>
-              )}
-            </div>
+            )}
             
-            {/* Add to Cart Button for fixed pricing */}
+            {/* Devotee Details Button for Abhisheka/Archana */}
             <motion.button
-              className="w-full bg-primary text-white py-2 px-4 rounded-lg font-medium hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
+              className="w-full bg-orange-500 text-white py-2 px-4 rounded-lg font-medium hover:bg-orange-600 transition-colors flex items-center justify-center gap-2"
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              onClick={async () => {
-                try {
-                  // Format data according to basket store expectations
-                  const basketItem = {
-                    serviceType: 'temple',
-                    temple_id: temple.id,
-                    service_id: service.id,
-                    quantity: 1,
-                    amount: service.price,
-                    booking_date: new Date().toISOString().split('T')[0],
-                    booking_time: '10:00',
-                    special_requests: '',
-                    devotee_details: [],
-                    serviceName: service.name,
-                    templeName: temple.name,
-                    category: service.category
-                  };
-                  
-                  await addToBasket(basketItem);
-                  toast.success(`Added ${service.name} (₹${service.price}) to basket`);
-                } catch (error) {
-                  console.error('Error adding to basket:', error);
-                  toast.error('Failed to add item to basket. Please try again.');
-                }
-              }}
+              onClick={() => handleAbhishekaArchanaServiceClick(service)}
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.1 5M7 13v6a2 2 0 002 2h6a2 2 0 002-2v-6" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
               </svg>
-              Add to Cart - ₹{service.price}
+              Enter Devotee Details
             </motion.button>
+          </div>
+        ) : (
+          /* Regular Dakshiney services */
+          <div>
+            {isFlexiblePricing ? (
+              <div className="space-y-3">
+                {/* Amount Selection Badges */}
+                <div className="flex flex-wrap gap-2">
+                  {presets.map((amount) => (
+                    <motion.button
+                      key={amount}
+                      className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                        selectedAmounts[service.id] === amount
+                          ? 'bg-primary text-white'
+                          : 'bg-primary/10 hover:bg-primary hover:text-white text-primary'
+                      }`}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => handleAmountSelection(service, amount)}
+                    >
+                      ₹{amount}
+                    </motion.button>
+                  ))}
+                  {service.pricing_options.allowCustom && (
+                    <motion.button
+                      className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                        selectedAmounts[service.id] && !presets.includes(selectedAmounts[service.id])
+                          ? 'bg-gray-600 text-white'
+                          : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                      }`}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => handleCustomAmountClick(service)}
+                    >
+                      {selectedAmounts[service.id] && !presets.includes(selectedAmounts[service.id])
+                        ? `₹${selectedAmounts[service.id]}`
+                        : 'Other'
+                      }
+                    </motion.button>
+                  )}
+                </div>
+                
+                {/* Add to Cart Button - appears when amount is selected */}
+                <motion.button
+                  className="w-full bg-primary text-white py-2 px-4 rounded-lg font-medium hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => handleAddToCart(service)}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.2 }}
+                  disabled={!selectedAmounts[service.id]}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.1 5M7 13v6a2 2 0 002 2h6a2 2 0 002-2v-6" />
+                  </svg>
+                  Add to Cart - ₹{selectedAmounts[service.id] || 0}
+                </motion.button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center text-primary font-semibold">
+                    <IndianRupee size={16} />
+                    <span>{service.price}</span>
+                  </div>
+                  {service.duration && service.category !== 'Donation' && (
+                    <div className="flex items-center text-muted-foreground text-sm">
+                      <Clock size={14} className="mr-1" />
+                      <span>{service.duration} min</span>
+                    </div>
+                  )}
+                </div>
+                
+                {/* Add to Cart Button for fixed pricing */}
+                <motion.button
+                  className="w-full bg-primary text-white py-2 px-4 rounded-lg font-medium hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={async () => {
+                    try {
+                      // Format data according to basket store expectations
+                      const basketItem = {
+                        serviceType: 'temple',
+                        temple_id: temple.id,
+                        service_id: service.id,
+                        quantity: 1,
+                        amount: service.price,
+                        booking_date: new Date().toISOString().split('T')[0],
+                        booking_time: '10:00',
+                        special_requests: '',
+                        devotee_details: [],
+                        serviceName: service.name,
+                        templeName: temple.name,
+                        category: service.category
+                      };
+                      
+                      await addToBasket(basketItem);
+                      toast.success(`Added ${service.name} (₹${service.price}) to basket`);
+                    } catch (error) {
+                      console.error('Error adding to basket:', error);
+                      toast.error('Failed to add item to basket. Please try again.');
+                    }
+                  }}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.1 5M7 13v6a2 2 0 002 2h6a2 2 0 002-2v-6" />
+                  </svg>
+                  Add to Cart - ₹{service.price}
+                </motion.button>
+              </div>
+            )}
           </div>
         )}
       </motion.div>
@@ -777,6 +877,34 @@ const TempleDetails = () => {
                 Confirm
               </button>
             </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Devotee Details Modal */}
+      {devoteeDetailsModal.isOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <motion.div
+            className="bg-white rounded-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.2 }}
+          >
+            <h3 className="text-lg font-semibold mb-4">
+              Devotee Details for {devoteeDetailsModal.service?.name}
+            </h3>
+            
+            <p className="text-sm text-muted-foreground mb-6">
+              Please provide the following details for the devotee:
+            </p>
+            
+            <DevoteeDetailsForm
+              onSubmit={handleDevoteeDetailsSubmit}
+              onCancel={() => setDevoteeDetailsModal({ isOpen: false, service: null })}
+              nakshatras={nakshatras}
+              gothras={gothras}
+              service={devoteeDetailsModal.service}
+            />
           </motion.div>
         </div>
       )}

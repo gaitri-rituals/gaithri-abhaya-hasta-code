@@ -9,7 +9,7 @@ A comprehensive temple management ecosystem with consumer app and admin dashboar
 │                    Docker Environment                        │
 ├─────────────────┬─────────────────┬─────────────────────────┤
 │  PostgreSQL DB  │  Backend APIs   │   Frontend UIs          │
-│  Port: 5432     │  Ports: 3001-2  │   Ports: 5173-4         │
+│  Port: 5432     │  Ports: 3000-2  │   Ports: 5173-4         │
 │                 │                 │                         │
 │  + PgAdmin      │  • Abhaya Hasta │   • Abhaya Hasta UI     │
 │  Port: 5050     │  • Gaithri      │   • Gaithri Dashboard   │
@@ -22,7 +22,7 @@ A comprehensive temple management ecosystem with consumer app and admin dashboar
 
 - Docker Desktop installed and running
 - Minimum 6GB RAM allocated to Docker
-- Ports 3001, 3002, 5173, 5174, 5432, 5050 available
+- Ports 3000, 3002, 5173, 5174, 5432, 5050 available
 
 ### **Start Everything**
 
@@ -49,7 +49,7 @@ cd manjumegaproject
 | ------------------------ | --------------------- | ---------------------------- |
 | **🛕 Abhaya Hasta App**  | http://localhost:5174 | Consumer temple services app |
 | **🏛️ Gaithri Dashboard** | http://localhost:5173 | Temple management dashboard  |
-| **📡 Abhaya Hasta API**  | http://localhost:3001 | Consumer app backend         |
+| **📡 Abhaya Hasta API**  | http://localhost:3000 | Consumer app backend         |
 | **📡 Gaithri Admin API** | http://localhost:3002 | Admin dashboard backend      |
 | **🗄️ Database Admin**    | http://localhost:5050 | PgAdmin web interface        |
 
@@ -62,8 +62,8 @@ cd manjumegaproject
 open http://localhost:5174
 
 # Test API directly
-curl http://localhost:3001/health
-curl http://localhost:3001/api/temples
+curl http://localhost:3000/health
+curl http://localhost:3000/api/temples
 ```
 
 ### **2. Test Admin Dashboard (Gaithri)**
@@ -173,18 +173,18 @@ docker compose top
 
 ```bash
 # User registration
-curl -X POST http://localhost:3001/api/auth/register \
+curl -X POST http://localhost:3000/api/auth/register \
   -H "Content-Type: application/json" \
   -d '{"name":"Test User","phone":"9876543210","email":"test@example.com"}'
 
 # Get temples
-curl http://localhost:3001/api/temples
+curl http://localhost:3000/api/temples
 
 # Search temples by location
-curl "http://localhost:3001/api/temples?city=Bangalore&category=Ganapathi"
+curl "http://localhost:3000/api/temples?city=Bangalore&category=Ganapathi"
 
 # Create booking (requires auth token)
-curl -X POST http://localhost:3001/api/bookings \
+curl -X POST http://localhost:3000/api/bookings \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer JWT_TOKEN" \
   -d '{"temple_id":1,"service_name":"Ganapathi Homam","booking_date":"2024-10-01"}'

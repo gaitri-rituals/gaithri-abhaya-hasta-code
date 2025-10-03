@@ -57,7 +57,7 @@ done
 
 # Check Abhaya Hasta Backend
 for i in {1..30}; do
-    if curl -s http://localhost:3001/health > /dev/null; then
+    if curl -s http://localhost:3000/health > /dev/null; then
         echo "✅ Abhaya Hasta Backend API is ready"
         break
     fi
@@ -120,7 +120,7 @@ echo "   Abhaya Hasta (Consumer App):  http://localhost:8081"
 echo "   Gaithri Admin Dashboard:      http://localhost:8080"
 echo ""
 echo "📡 BACKEND APIs:"
-echo "   Abhaya Hasta API:             http://localhost:3001"
+echo "   Abhaya Hasta API:             http://localhost:3000"
 echo "   Gaithri Admin API:            http://localhost:3002"
 echo ""
 echo "🗄️  DATABASE ACCESS:"
@@ -128,7 +128,7 @@ echo "   PgAdmin Web Interface:        http://localhost:5050"
 echo "   PostgreSQL Direct:            localhost:5432"
 echo ""
 echo "🧪 HEALTH CHECK ENDPOINTS:"
-echo "   curl http://localhost:3001/health"
+echo "   curl http://localhost:3000/health"
 echo "   curl http://localhost:3002/health"
 echo ""
 echo "📊 SAMPLE CREDENTIALS:"

@@ -16,6 +16,7 @@
     "test:coverage": "NODE_OPTIONS=--experimental-vm-modules jest --coverage"
   },
   "dependencies": {
+    "bcrypt": "^6.0.0",
     "bcryptjs": "^2.4.3",
     "compression": "^1.8.1",
     "cookie-parser": "^1.4.6",
@@ -27,11 +28,13 @@
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.0",
     "node-cron": "^4.2.1",
+    "nodemailer": "^7.0.6",
     "pg": "^8.10.0",
     "razorpay": "^2.8.6",
     "sequelize": "^6.37.7",
     "swagger-jsdoc": "^6.2.8",
-    "swagger-ui-express": "^5.0.1"
+    "swagger-ui-express": "^5.0.1",
+    "twilio": "^5.10.2"
   },
   "devDependencies": {
     "@jest/globals": "^29.7.0",

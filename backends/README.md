@@ -10,7 +10,7 @@ Complete backend implementation for both **Abhaya Hasta** (Consumer App) and **G
 ├─────────────────┬─────────────────┬─────────────────────────┤
 │  PostgreSQL DB  │  Abhaya Hasta   │      Gaithri            │
 │  Port: 5432     │  Consumer API   │   Admin API             │
-│                 │  Port: 3001     │   Port: 3002            │
+│                 │  Port: 3000     │   Port: 3002            │
 └─────────────────┴─────────────────┴─────────────────────────┘
 ```
 
@@ -43,7 +43,7 @@ Check that all services are running:
 docker-compose ps
 
 # Test health endpoints
-curl http://localhost:3001/health  # Abhaya Hasta Backend
+curl http://localhost:3000/health  # Abhaya Hasta Backend
 curl http://localhost:3002/health  # Gaithri Backend
 ```
 

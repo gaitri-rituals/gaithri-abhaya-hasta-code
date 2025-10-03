@@ -5,7 +5,7 @@ echo "=================================================================="
 
 # Kill existing processes on required ports
 echo "🔄 Cleaning up existing processes..."
-lsof -ti :3001 :3002 :8080 :8081 | xargs kill -9 2>/dev/null || true
+lsof -ti :3000 :3002 :8080 :8081 | xargs kill -9 2>/dev/null || true
 
 # Start PostgreSQL with Docker (only for database)
 echo "🐘 Starting PostgreSQL database..."
@@ -52,7 +52,7 @@ echo "   Sacred Ops Dashboard:        http://localhost:8080"
 echo "   Culture Path Skeleton:       http://localhost:8081"
 echo ""
 echo "📡 BACKEND APIs:"
-echo "   Abhaya Hasta Backend:        http://localhost:3001"
+echo "   Abhaya Hasta Backend:        http://localhost:3000"
 echo "   Gaithri Admin Backend:       http://localhost:3002"
 echo ""
 echo "🗄️  DATABASE:"

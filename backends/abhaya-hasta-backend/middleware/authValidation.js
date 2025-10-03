@@ -50,8 +50,8 @@ const validateOTPVerification = [
   body('otp')
     .notEmpty()
     .withMessage('OTP is required')
-    .isLength({ min: 6, max: 6 })
-    .withMessage('OTP must be 6 digits')
+    .isLength({ min: 4, max: 4 })
+    .withMessage('OTP must be 4 digits')
     .isNumeric()
     .withMessage('OTP must contain only numbers'),
   body('name')

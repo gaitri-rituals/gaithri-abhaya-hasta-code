@@ -22,7 +22,7 @@ const generateTokens = (userId, role = 'user', userType = 'user') => {
 
 // Generate OTP
 const generateOTP = () => {
-  return Math.floor(100000 + Math.random() * 900000).toString();
+  return Math.floor(1000 + Math.random() * 9000).toString();
 };
 
 // Admin/Temple Staff Email Login
@@ -312,13 +312,21 @@ const sendOTP = async (req, res) => {
     // TODO: Integrate with SMS service to send OTP
     console.log(`OTP for ${phone}: ${otpCode}`);
 
+    // In development mode, include OTP in response for easier testing
+    const responseData = {
+      phone,
+      expiresIn: 300 // 5 minutes in seconds
+    };
+
+    // Add OTP to response in development mode
+    if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV !== 'production') {
+      responseData.otp = otpCode;
+    }
+
     res.json({
       success: true,
       message: 'OTP sent successfully',
-      data: {
-        phone,
-        expiresIn: 300 // 5 minutes in seconds
-      }
+      data: responseData
     });
 
   } catch (error) {

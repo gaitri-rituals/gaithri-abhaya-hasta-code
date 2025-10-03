@@ -1,5 +1,7 @@
 const express = require('express');
 const { executeQuery } = require('../utils/dbHelpers.js');
+const { createTemple } = require('../controllers/templeController.js');
+const { protect, authorize } = require('../middleware/auth.js');
 
 const router = express.Router();
 
@@ -131,6 +133,11 @@ router.get('/', async (req, res) => {
     });
   }
 });
+
+// @route   POST /api/temples
+// @desc    Create a new temple
+// @access  Private (Admin)
+router.post('/', protect, createTemple);
 
 // @route   GET /api/temples/categories
 // @desc    Get temple categories for filtering (matches UI categories)

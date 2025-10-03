@@ -51,7 +51,7 @@ done
 
 # Check Abhaya Hasta Backend
 for i in {1..30}; do
-    if curl -s http://localhost:3001/health > /dev/null; then
+    if curl -s http://localhost:3000/health > /dev/null; then
         echo "✅ Abhaya Hasta Backend is ready"
         break
     fi
@@ -82,12 +82,12 @@ echo "🎉 All services are running successfully!"
 echo "================================================"
 echo ""
 echo "📡 API Endpoints:"
-echo "  Abhaya Hasta (Consumer):  http://localhost:3001"
+echo "  Abhaya Hasta (Consumer):  http://localhost:3000"
 echo "  Gaithri (Admin):         http://localhost:3002"
 echo "  Database Admin:          http://localhost:5050"
 echo ""
 echo "🧪 Test APIs:"
-echo "  curl http://localhost:3001/health"
+echo "  curl http://localhost:3000/health"
 echo "  curl http://localhost:3002/health"
 echo ""
 echo "📊 View Logs:"

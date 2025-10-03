@@ -25,20 +25,20 @@ services:
       dockerfile: Dockerfile
     container_name: abhaya_hasta_api
     environment:
-      NODE_ENV: development
-      PORT: 3001
+      NODE_ENV: production
+      PORT: 3000
       DB_HOST: postgres
       DB_PORT: 5432
-      DB_NAME: temple_ecosystem_db
-      DB_USER: temple_admin
-      DB_PASSWORD: temple_password123
-      JWT_SECRET: abhaya_hasta_secret_key_2024
+      DB_NAME: temple_management
+      DB_USER: temple_user
+      DB_PASSWORD: temple_password
+      JWT_SECRET: your-super-secret-jwt-key-change-this-in-production
       JWT_EXPIRE: 30d
       RAZORPAY_KEY_ID: rzp_test_1234567890
       RAZORPAY_KEY_SECRET: test_secret_key_1234567890
       FRONTEND_URL: http://localhost:8081
     ports:
-      - "3001:3001"
+      - "3000:3000"
     depends_on:
       postgres:
         condition: service_healthy
@@ -83,7 +83,7 @@ services:
       dockerfile: Dockerfile
     container_name: abhaya_hasta_ui
     environment:
-      VITE_API_BASE_URL: http://localhost:3001/api
+      VITE_API_BASE_URL: http://localhost:3000/api
     ports:
       - "8081:5174"
     depends_on:

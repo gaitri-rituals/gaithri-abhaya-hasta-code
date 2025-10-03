@@ -17,6 +17,7 @@ import dashboardRoutes from './routes/dashboard.js';
 import storeRoutes from './routes/store.js';
 import classRoutes from './routes/classes.js';
 import bookingRoutes from './routes/bookings.js';
+import referenceRoutes from './routes/reference.js';
 
 dotenv.config();
 
@@ -30,16 +31,16 @@ app.use(helmet({
 }));
 app.use(compression());
 
-// Rate limiting
+// Rate limiting - more lenient for development
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
+  max: process.env.NODE_ENV === 'production' ? 100 : 1000, // 1000 requests for dev, 100 for production
   message: 'Too many requests from this IP, please try again later.'
 });
 app.use(limiter);
 
 // CORS configuration - allow multiple localhost dev ports
-const baseAllowed = 'http://localhost:5173,http://localhost:5174,http://localhost:5175,http://localhost:8080';
+const baseAllowed = 'http://localhost:5173,http://localhost:5174,http://localhost:5175,http://localhost:8080,http://localhost:8081';
 const envOrigins = process.env.FRONTEND_URLS || process.env.FRONTEND_URL || '';
 const allowedOrigins = ((envOrigins ? envOrigins + ',' : '') + baseAllowed).split(',');
 
@@ -81,6 +82,7 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/store', storeRoutes);
 app.use('/api/classes', classRoutes);
 app.use('/api/bookings', bookingRoutes);
+app.use('/api/reference', referenceRoutes);
 
 // 404 handler
 app.use('*', (req, res) => {

@@ -327,92 +327,288 @@ const bookingsController = {
     }
   },
 
-  // Temple Basket functionality
-  // Add service to basket
+  // Context-Aware Basket functionality
+  // Add service to basket (supports both temple and puja contexts)
   addToBasket: async (req, res) => {
     try {
       const userId = req.user.id;
-      const { 
-        temple_id, 
-        service_id, 
-        quantity = 1, 
-        booking_date, 
-        booking_time,
-        special_requests,
-        devotee_details = []
-      } = req.body;
+      
+      // Detect booking type from request data
+      const bookingType = req.body.serviceType === 'puja' ? 'puja' : 'temple';
+      
+      if (bookingType === 'puja') {
+        // Handle Puja booking context
+        const {
+          puja,
+          category,
+          dateTime,
+          address,
+          package: pujaPackage,
+          catering,
+          guestCount,
+          addOns,
+          specialRequests,
+          totalAmount,
+          serviceName,
+          templeName,
+          quantity = 1
+        } = req.body;
 
-      if (!temple_id || !service_id) {
-        return res.status(400).json({
-          success: false,
-          message: 'Temple ID and service ID are required'
-        });
-      }
+        if (!puja || !dateTime || !totalAmount) {
+          return res.status(400).json({
+            success: false,
+            message: 'Puja details, date/time, and total amount are required for puja bookings'
+          });
+        }
 
-      // Check if service exists and is available
-      const serviceQuery = `
-        SELECT ts.*, t.name as temple_name 
-        FROM temple_services ts 
-        JOIN temples t ON ts.temple_id = t.id 
-        WHERE ts.id = $1 AND ts.temple_id = $2 AND ts.is_available = true
-      `;
-      const serviceResult = await sequelize.query(serviceQuery, { replacements: [service_id, temple_id], type: QueryTypes.SELECT });
+        // Create puja booking data
+        const bookingData = {
+          puja,
+          category,
+          dateTime,
+          address,
+          package: pujaPackage,
+          catering,
+          guestCount,
+          addOns,
+          specialRequests
+        };
 
-      if (serviceResult.length === 0) {
-        return res.status(404).json({
-          success: false,
-          message: 'Service not found or not available'
-        });
-      }
+        // Use virtual service ID for puja (starting from 2000)
+        const virtualServiceId = 2000 + (puja.id || 1);
+        const virtualTempleId = 999; // Virtual temple for home services
 
-      const service = serviceResult[0];
-
-      // Check if item already in basket
-      const existingQuery = 'SELECT * FROM temple_basket WHERE user_id = ? AND service_id = ?';
-      const existingResult = await sequelize.query(existingQuery, { replacements: [userId, service_id], type: QueryTypes.SELECT });
-
-      if (existingResult.length > 0) {
-        // Update existing basket item
-        const updateQuery = `
-          UPDATE temple_basket 
-          SET quantity = ?, 
-              booking_date = ?, 
-              booking_time = ?,
-              special_requests = ?,
-              devotee_details = ?,
-              updated_at = CURRENT_TIMESTAMP 
+        // Check if similar puja booking already exists
+        const existingQuery = `
+          SELECT * FROM temple_basket 
           WHERE user_id = ? AND service_id = ? 
-          RETURNING *
+          AND booking_data->>'dateTime' = ?
         `;
-        const result = await sequelize.query(updateQuery, { replacements: [
-          quantity, booking_date, booking_time, special_requests, 
-          JSON.stringify(devotee_details), userId, service_id
-        ], type: QueryTypes.SELECT });
-        
-        res.json({
-          success: true,
-          message: 'Basket updated successfully',
-          data: result[0]
+        const existingResult = await sequelize.query(existingQuery, { 
+          replacements: [userId, virtualServiceId, dateTime], 
+          type: QueryTypes.SELECT 
         });
-      } else {
-        // Add new item to basket
+
+        if (existingResult.length > 0) {
+          return res.status(400).json({
+            success: false,
+            message: 'A similar puja booking already exists in your basket'
+          });
+        }
+
+        // Add new puja item to basket (using existing table structure)
         const insertQuery = `
           INSERT INTO temple_basket (
-            user_id, temple_id, service_id, quantity, 
+            user_id, temple_id, service_id, quantity,
             booking_date, booking_time, special_requests, devotee_details
           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?) 
           RETURNING *
         `;
-        const result = await sequelize.query(insertQuery, { replacements: [
-          userId, temple_id, service_id, quantity, 
-          booking_date, booking_time, special_requests, JSON.stringify(devotee_details)
-        ], type: QueryTypes.SELECT });
+        
+        const result = await sequelize.query(insertQuery, { 
+          replacements: [
+            userId, virtualTempleId, virtualServiceId, quantity,
+            dateTime.split('T')[0], // Extract date
+            dateTime.split('T')[1], // Extract time
+            JSON.stringify({ ...bookingData, serviceName, totalAmount, bookingType: 'puja' }),
+            JSON.stringify([]) // Empty devotee details for puja
+          ], 
+          type: QueryTypes.SELECT 
+        });
         
         res.status(201).json({
           success: true,
-          message: 'Item added to basket successfully',
+          message: 'Puja booking added to basket successfully',
           data: result[0]
         });
+
+      } else {
+        // Handle Temple booking context (existing logic with enhancements)
+        const { 
+          temple_id, 
+          service_id, 
+          quantity = 1, 
+          booking_date, 
+          booking_time,
+          special_requests = null,
+          devotee_details = [],
+          amount,
+          templeId,
+          serviceId,
+          templeName,
+          serviceType,
+          serviceName,
+          devotees,
+          totalAmount
+        } = req.body;
+
+        // Support both old and new field names
+        const finalTempleId = temple_id || templeId;
+        const finalServiceId = service_id || serviceId;
+        const finalDevoteeDetails = devotee_details.length > 0 ? devotee_details : (devotees || []);
+        const finalAmount = totalAmount || amount;
+        const finalServiceName = serviceName || 'Temple Service';
+        
+        // Handle missing booking date/time with defaults
+        const finalBookingDate = booking_date || new Date().toISOString().split('T')[0];
+        const finalBookingTime = booking_time || '10:00:00';
+
+        if (!finalTempleId || !finalServiceId) {
+          return res.status(400).json({
+            success: false,
+            message: 'Temple ID and service ID are required'
+          });
+        }
+
+        // Create temple booking data
+        const bookingData = {
+          serviceType,
+          devotees: finalDevoteeDetails,
+          amount: finalAmount
+        };
+
+        // Check if service exists and is available
+        let service;
+        
+        // Handle virtual service IDs (>= 1000) - these are frontend fallback services
+        if (finalServiceId >= 1000) {
+          // Virtual service - validate temple exists and create virtual service object
+          const templeQuery = `SELECT id, name FROM temples WHERE id = ? AND is_active = true`;
+          const templeResult = await sequelize.query(templeQuery, { replacements: [finalTempleId], type: QueryTypes.SELECT });
+        
+        if (templeResult.length === 0) {
+          return res.status(404).json({
+            success: false,
+            message: 'Temple not found or not active'
+          });
+        }
+        
+        // Create virtual service object based on service_id pattern
+        const serviceIndex = service_id % 1000;
+        const temple = templeResult[0];
+        
+        if (serviceIndex === 1) {
+           // Donation service
+           service = {
+             id: service_id,
+             temple_id: temple_id,
+             name: 'Donate Dakshiney',
+             description: 'General donation to support temple activities',
+             price: amount || 0, // Use the amount from request
+             category: 'donation',
+             is_available: true,
+             temple_name: temple.name
+           };
+        } else if (serviceIndex === 2) {
+          // Archana service
+          service = {
+            id: finalServiceId,
+            temple_id: finalTempleId,
+            name: 'Archana Ticket',
+            description: 'Special worship with name chanting',
+            price: 25,
+            category: 'ritual',
+            is_available: true,
+            temple_name: temple.name
+          };
+        } else if (serviceIndex === 3) {
+          // Abhisheka service
+          service = {
+            id: finalServiceId,
+            temple_id: finalTempleId,
+            name: 'Abhisheka Ticket',
+            description: 'Sacred ritual of pouring holy water over the deity',
+            price: 151,
+            category: 'ritual',
+            is_available: true,
+            temple_name: temple.name
+          };
+        } else {
+          return res.status(404).json({
+            success: false,
+            message: 'Virtual service not found'
+          });
+        }
+      } else {
+        // Real service - check database
+        const serviceQuery = `
+          SELECT ts.*, t.name as temple_name 
+          FROM temple_services ts 
+          JOIN temples t ON ts.temple_id = t.id 
+          WHERE ts.id = ? AND ts.temple_id = ? AND ts.is_available = true
+        `;
+        const serviceResult = await sequelize.query(serviceQuery, { replacements: [finalServiceId, finalTempleId], type: QueryTypes.SELECT });
+
+        if (serviceResult.length === 0) {
+          return res.status(404).json({
+            success: false,
+            message: 'Service not found or not available'
+          });
+        }
+
+        service = serviceResult[0];
+      }
+
+        // Check if item already in basket for temple bookings
+        const existingQuery = 'SELECT * FROM temple_basket WHERE user_id = ? AND service_id = ?';
+        const existingResult = await sequelize.query(existingQuery, { 
+          replacements: [userId, finalServiceId], 
+          type: QueryTypes.SELECT 
+        });
+
+        if (existingResult.length > 0) {
+          // Update existing basket item (using existing table structure)
+          const updateQuery = `
+            UPDATE temple_basket 
+            SET quantity = ?, 
+                booking_date = ?, 
+                booking_time = ?,
+                special_requests = ?,
+                devotee_details = ?,
+                updated_at = CURRENT_TIMESTAMP 
+            WHERE user_id = ? AND service_id = ?
+            RETURNING *
+          `;
+          const result = await sequelize.query(updateQuery, { 
+            replacements: [
+              quantity, finalBookingDate, finalBookingTime, 
+              JSON.stringify({ ...bookingData, serviceName: service.name, totalAmount: finalAmount, bookingType: 'temple', specialRequests: special_requests }),
+              JSON.stringify(finalDevoteeDetails), 
+              userId, finalServiceId
+            ], 
+            type: QueryTypes.SELECT 
+          });
+          
+          res.json({
+            success: true,
+            message: 'Temple basket updated successfully',
+            data: result[0]
+          });
+        } else {
+          // Add new temple item to basket (using existing table structure)
+          const insertQuery = `
+            INSERT INTO temple_basket (
+              user_id, temple_id, service_id, quantity,
+              booking_date, booking_time, special_requests, devotee_details
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?) 
+            RETURNING *
+          `;
+          const result = await sequelize.query(insertQuery, { 
+            replacements: [
+              userId, finalTempleId, finalServiceId, quantity,
+              finalBookingDate, finalBookingTime, 
+              JSON.stringify({ ...bookingData, serviceName: service.name, totalAmount: finalAmount, bookingType: 'temple', specialRequests: special_requests }),
+              JSON.stringify(finalDevoteeDetails)
+            ], 
+            type: QueryTypes.SELECT 
+          });
+          
+          res.status(201).json({
+            success: true,
+            message: 'Temple item added to basket successfully',
+            data: result[0]
+          });
+        }
       }
     } catch (error) {
       console.error('Error adding to basket:', error);
@@ -425,27 +621,120 @@ const bookingsController = {
     try {
       const userId = req.user.id;
       
-      const query = `
-        SELECT tb.*, ts.name as service_name, ts.price, ts.category, ts.description,
-               t.name as temple_name, t.address as temple_address,
-               (tb.quantity * ts.price) as total_price
+      // Get all basket items with temple info
+      const basketQuery = `
+        SELECT tb.*, t.name as temple_name, t.address as temple_address
         FROM temple_basket tb
-        JOIN temple_services ts ON tb.service_id = ts.id
-        JOIN temples t ON tb.temple_id = t.id
-        WHERE tb.user_id = ? AND ts.is_available = true
-        ORDER BY tb.created_at DESC
+        LEFT JOIN temples t ON tb.temple_id = t.id
+        WHERE tb.user_id = ?
+        ORDER BY tb.id DESC
       `;
       
-      const result = await sequelize.query(query, { replacements: [userId], type: QueryTypes.SELECT });
+      const basketItems = await sequelize.query(basketQuery, { replacements: [userId], type: QueryTypes.SELECT });
+      
+      // Process each item based on booking type
+      const processedItems = [];
+      
+      for (const item of basketItems) {
+        let processedItem = { ...item };
+        
+        // Parse special_requests to get booking data
+        let bookingData = {};
+        try {
+          bookingData = JSON.parse(item.special_requests || '{}');
+        } catch (e) {
+          bookingData = { specialRequests: item.special_requests };
+        }
+        
+        if (bookingData.bookingType === 'puja') {
+          // Puja booking - use stored data
+          processedItem = {
+            ...item,
+            service_name: bookingData.serviceName || 'Puja Booking',
+            total_price: bookingData.totalAmount || 0,
+            booking_details: bookingData,
+            category: 'puja'
+          };
+        } else {
+          // Temple booking - handle virtual and real services
+          let serviceData;
+          
+          if (item.service_id >= 1000) {
+            // Virtual service
+            const serviceIndex = item.service_id % 1000;
+            
+            if (serviceIndex === 1) {
+               serviceData = {
+                 service_name: 'Donate Dakshiney',
+                 price: item.total_amount || 100, // Use stored amount or default
+                 category: 'donation',
+                 description: 'General donation to support temple activities'
+               };
+            } else if (serviceIndex === 2) {
+              serviceData = {
+                service_name: 'Archana Ticket',
+                price: 25,
+                category: 'ritual',
+                description: 'Special worship with name chanting'
+              };
+            } else if (serviceIndex === 3) {
+              serviceData = {
+                service_name: 'Abhisheka Ticket',
+                price: 151,
+                category: 'ritual',
+                description: 'Sacred ritual of pouring holy water over the deity'
+              };
+            } else {
+              // Skip invalid virtual services
+              continue;
+            }
+          } else {
+            // Real service - get from database
+            const serviceQuery = `
+              SELECT name, price, category, description
+              FROM temple_services
+              WHERE id = ? AND temple_id = ? AND is_available = true
+            `;
+            const serviceResult = await sequelize.query(serviceQuery, { 
+              replacements: [item.service_id, item.temple_id], 
+              type: QueryTypes.SELECT 
+            });
+            
+            if (serviceResult.length === 0) {
+              // Skip unavailable services
+              continue;
+            }
+            
+            serviceData = {
+              service_name: serviceResult[0].name,
+              price: serviceResult[0].price,
+              category: serviceResult[0].category,
+              description: serviceResult[0].description
+            };
+          }
+          
+          // Calculate total price - use stored amount if available, otherwise calculate
+          const totalPrice = bookingData.totalAmount || (item.quantity * serviceData.price);
+          
+          processedItem = {
+            ...item,
+            ...serviceData,
+            total_price: totalPrice,
+            booking_details: item.booking_data || {}
+          };
+        }
+        
+        processedItems.push(processedItem);
+      }
       
       // Calculate basket totals
-      const totalAmount = result.reduce((sum, item) => sum + parseFloat(item.total_price), 0);
-      const totalItems = result.reduce((sum, item) => sum + item.quantity, 0);
+      const totalAmount = processedItems.reduce((sum, item) => sum + parseFloat(item.total_price), 0);
+      const totalItems = processedItems.reduce((sum, item) => sum + item.quantity, 0);
       
       res.json({
         success: true,
         data: {
-          items: result,
+          items: processedItems,
           summary: {
             totalItems,
             totalAmount: totalAmount.toFixed(2)

@@ -23,7 +23,7 @@ RUN chown -R nodejs:nodejs /app
 USER nodejs
 
 # Expose port
-EXPOSE 3001
+EXPOSE 3000
 
 # Start the application
 CMD ["npm", "start"]

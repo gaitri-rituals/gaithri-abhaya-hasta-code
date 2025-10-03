@@ -348,18 +348,20 @@ router.get('/:id/qr-code', protect, belongsToTemple, async (req, res) => {
 });
 
 // @route   GET /api/temples/:id/services
-// @desc    Get temple services
+// @desc    Get temple services categorized for tab-based UI
 // @access  Public
 router.get('/:id/services', async (req, res) => {
   try {
     const templeId = req.params.id;
 
-    // Query temple services from database
+    // Query temple services from database (include both temple-specific and global services)
     const query = `
-      SELECT id, name, description, price, duration, category, is_available
+      SELECT id, name, description, price, duration, category, is_available,
+             service_type, pricing_type, min_price, max_price, suggested_prices,
+             pricing_options, requires_nakshatra, requires_gothra
       FROM temple_services 
-      WHERE temple_id = :templeId AND is_available = true
-      ORDER BY category, name
+      WHERE (temple_id = :templeId OR temple_id IS NULL) AND is_available = true
+      ORDER BY service_type, category, name
     `;
     
     const services = await sequelize.query(query, {
@@ -367,9 +369,31 @@ router.get('/:id/services', async (req, res) => {
       type: QueryTypes.SELECT
     });
     
+    // Categorize services for the new tab-based UI
+    const categorizedServices = {
+      dakshiney: [],
+      abhisheka_archana: [],
+      other: []
+    };
+    
+    services.forEach(service => {
+      const category = service.category?.toLowerCase();
+      const name = service.name?.toLowerCase();
+      
+      if (category === 'dakshina' || category === 'donation' || name.includes('dakshina') || name.includes('donation')) {
+        categorizedServices.dakshiney.push(service);
+      } else if (category === 'abhisheka' || category === 'archana' || 
+                 name.includes('abhisheka') || name.includes('archana')) {
+        categorizedServices.abhisheka_archana.push(service);
+      } else {
+        categorizedServices.other.push(service);
+      }
+    });
+    
     res.json({
       message: 'Temple services retrieved successfully',
-      services: services
+      services: services, // Keep original format for backward compatibility
+      categorizedServices: categorizedServices
     });
   } catch (error) {
     console.error('Get temple services error:', error);

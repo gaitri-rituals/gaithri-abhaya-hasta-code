@@ -8,7 +8,7 @@ This guide explains how to integrate both frontend applications (Abhaya Hasta an
 Frontend Apps (React)          Backend APIs (Node.js)         Database
 ─────────────────────         ──────────────────────         ────────
 Abhaya Hasta UI    ──────►    Abhaya Hasta API    ──────►   PostgreSQL
-(localhost:5174)               (localhost:3001)              (localhost:5432)
+(localhost:5174)               (localhost:3000)              (localhost:5432)
 
 Gaithri Dashboard  ──────►    Gaithri Admin API   ──────►   PostgreSQL
 (localhost:5173)               (localhost:3002)              (localhost:5432)
@@ -442,7 +442,7 @@ const processPayment = async (bookingData) => {
 ### **Abhaya Hasta (.env)**
 
 ```env
-VITE_API_BASE_URL=http://localhost:3001/api
+VITE_API_BASE_URL=http://localhost:3000/api
 VITE_RAZORPAY_KEY=rzp_test_1234567890
 VITE_GOOGLE_MAPS_KEY=your_google_maps_key
 ```
@@ -494,7 +494,7 @@ api.auth
 
 ## 📝 **Complete API Endpoints Reference**
 
-### **Abhaya Hasta Backend (localhost:3001/api)**
+### **Abhaya Hasta Backend (localhost:3000/api)**
 
 #### Authentication
 
