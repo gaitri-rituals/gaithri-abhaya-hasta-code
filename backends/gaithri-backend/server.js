@@ -16,6 +16,7 @@ import userRoutes from './routes/users.js';
 import dashboardRoutes from './routes/dashboard.js';
 import storeRoutes from './routes/store.js';
 import classRoutes from './routes/classes.js';
+import bookingRoutes from './routes/bookings.js';
 
 dotenv.config();
 
@@ -79,6 +80,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/store', storeRoutes);
 app.use('/api/classes', classRoutes);
+app.use('/api/bookings', bookingRoutes);
 
 // 404 handler
 app.use('*', (req, res) => {

@@ -141,14 +141,14 @@ router.get('/', protect, async (req, res) => {
 
 // @route   GET /api/temples/:id
 // @desc    Get single temple
-// @access  Private
-router.get('/:id', protect, async (req, res) => {
+// @access  Public
+router.get('/:id', async (req, res) => {
   try {
     const templeId = req.params.id;
     const rows = await sequelize.query(
-      `SELECT id, name, description, street, city, state, zip_code, country,
-              latitude, longitude, phone, email, website, donation_url, qr_code,
-              is_active, facilities, created_at, updated_at
+      `SELECT id, name, description, address, city, state, country,
+              latitude, longitude, phone, email, website,
+              is_active, created_at, updated_at
        FROM temples
        WHERE id = $1`,
       { bind: [templeId], type: QueryTypes.SELECT }
@@ -164,14 +164,14 @@ router.get('/:id', protect, async (req, res) => {
       name: t.name,
       description: t.description,
       address: {
-        street: t.street,
+        street: t.address || '',
         city: t.city,
         state: t.state,
         country: t.country,
-        postalCode: t.zip_code,
+        postalCode: '',
         coordinates: {
-          latitude: Number(t.latitude),
-          longitude: Number(t.longitude)
+          latitude: Number(t.latitude) || 0,
+          longitude: Number(t.longitude) || 0
         }
       },
       contact: {
@@ -340,6 +340,39 @@ router.get('/:id/qr-code', protect, belongsToTemple, async (req, res) => {
     });
   } catch (error) {
     console.error('Generate QR code error:', error);
+    res.status(500).json({
+      message: 'Server error',
+      error: error.message
+    });
+  }
+});
+
+// @route   GET /api/temples/:id/services
+// @desc    Get temple services
+// @access  Public
+router.get('/:id/services', async (req, res) => {
+  try {
+    const templeId = req.params.id;
+
+    // Query temple services from database
+    const query = `
+      SELECT id, name, description, price, duration, category, is_available
+      FROM temple_services 
+      WHERE temple_id = :templeId AND is_available = true
+      ORDER BY category, name
+    `;
+    
+    const services = await sequelize.query(query, {
+      replacements: { templeId },
+      type: QueryTypes.SELECT
+    });
+    
+    res.json({
+      message: 'Temple services retrieved successfully',
+      services: services
+    });
+  } catch (error) {
+    console.error('Get temple services error:', error);
     res.status(500).json({
       message: 'Server error',
       error: error.message
