@@ -1,0 +1,270 @@
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;500;600;700;800;900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Divine Temple Design System - Warm, Sacred, Spiritual Colors
+   All colors MUST be HSL. Divine temple aesthetic with warm golds, sacred oranges, spiritual whites.
+*/
+
+@layer base {
+  :root {
+    /* Temple Background - Warm cream with golden undertone */
+    --background: 39 100% 97%;
+    --foreground: 15 25% 15%;
+
+    /* Sacred Cards - Pure white with warm glow */
+    --card: 0 0% 100%;
+    --card-foreground: 15 25% 15%;
+
+    /* Divine Popover */
+    --popover: 0 0% 100%;
+    --popover-foreground: 15 25% 15%;
+
+    /* Primary - Sacred Saffron/Temple Orange */
+    --primary: 25 95% 55%;
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 25 100% 75%;
+
+    /* Secondary - Divine Gold */
+    --secondary: 42 85% 60%;
+    --secondary-foreground: 15 25% 15%;
+
+    /* Muted - Soft temple stone */
+    --muted: 35 15% 92%;
+    --muted-foreground: 20 15% 45%;
+
+    /* Accent - Spiritual Rose Gold */
+    --accent: 15 65% 70%;
+    --accent-foreground: 15 25% 15%;
+
+    /* Sacred Red for important actions */
+    --sacred: 0 75% 55%;
+    --sacred-foreground: 0 0% 100%;
+
+    /* Destructive - Gentle warning */
+    --destructive: 0 65% 55%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* Borders and inputs - Subtle temple stone */
+    --border: 35 25% 85%;
+    --input: 35 25% 90%;
+    --ring: 25 95% 55%;
+
+    /* Temple Radius - Soft rounded corners */
+    --radius: 0.75rem;
+
+    /* Sidebar - Temple interior */
+    --sidebar-background: 39 50% 95%;
+    --sidebar-foreground: 15 25% 20%;
+    --sidebar-primary: 25 95% 55%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 35 30% 88%;
+    --sidebar-accent-foreground: 15 25% 20%;
+    --sidebar-border: 35 25% 82%;
+    --sidebar-ring: 25 95% 55%;
+
+    /* Divine Gradients */
+    --gradient-divine: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-glow)));
+    --gradient-temple: linear-gradient(180deg, hsl(var(--background)), hsl(var(--secondary) / 0.1));
+    --gradient-sacred: linear-gradient(45deg, hsl(var(--accent)), hsl(var(--secondary)));
+
+    /* Sacred Shadows */
+    --shadow-divine: 0 10px 30px -5px hsl(var(--primary) / 0.3);
+    --shadow-temple: 0 4px 20px -4px hsl(var(--secondary) / 0.25);
+    --shadow-sacred: 0 8px 25px -6px hsl(var(--accent) / 0.4);
+
+    /* Animations */
+    --transition-divine: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-sacred: all 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+  }
+
+  .dark {
+    /* Dark Temple - Evening prayers ambiance */
+    --background: 15 25% 8%;
+    --foreground: 39 100% 95%;
+
+    --card: 15 25% 10%;
+    --card-foreground: 39 100% 95%;
+
+    --popover: 15 25% 10%;
+    --popover-foreground: 39 100% 95%;
+
+    --primary: 25 85% 65%;
+    --primary-foreground: 15 25% 8%;
+    --primary-glow: 25 90% 80%;
+
+    --secondary: 42 75% 70%;
+    --secondary-foreground: 15 25% 8%;
+
+    --muted: 20 15% 15%;
+    --muted-foreground: 35 15% 65%;
+
+    --accent: 15 55% 75%;
+    --accent-foreground: 15 25% 8%;
+
+    --sacred: 0 65% 60%;
+    --sacred-foreground: 0 0% 100%;
+
+    --destructive: 0 55% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 20 15% 20%;
+    --input: 20 15% 18%;
+    --ring: 25 85% 65%;
+
+    --sidebar-background: 15 25% 6%;
+    --sidebar-foreground: 39 80% 90%;
+    --sidebar-primary: 25 85% 65%;
+    --sidebar-primary-foreground: 15 25% 8%;
+    --sidebar-accent: 20 15% 12%;
+    --sidebar-accent-foreground: 39 80% 90%;
+    --sidebar-border: 20 15% 18%;
+    --sidebar-ring: 25 85% 65%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+}
+
+@layer components {
+  /* Divine Button Variants */
+  .btn-divine {
+    @apply bg-gradient-to-r from-primary to-primary-glow text-primary-foreground 
+           px-6 py-3 rounded-lg font-semibold shadow-lg 
+           hover:shadow-xl transform hover:scale-105 
+           transition-all duration-300 ease-out;
+  }
+
+  .btn-sacred {
+    @apply bg-gradient-to-r from-secondary to-accent text-secondary-foreground 
+           px-6 py-3 rounded-lg font-semibold shadow-md 
+           hover:shadow-lg transform hover:scale-105 
+           transition-all duration-300 ease-out;
+  }
+
+  .btn-temple {
+    @apply bg-card text-card-foreground border border-border 
+           px-6 py-3 rounded-lg font-medium shadow-sm 
+           hover:shadow-md hover:bg-muted 
+           transition-all duration-200 ease-out;
+  }
+
+  /* Divine Card Styles */
+  .card-divine {
+    @apply bg-card text-card-foreground rounded-xl shadow-temple 
+           border border-border/50 p-6 
+           hover:shadow-sacred transition-all duration-300;
+  }
+
+  .card-sacred {
+    @apply bg-gradient-to-br from-card to-secondary/5 text-card-foreground 
+           rounded-xl shadow-divine border border-secondary/20 p-6 
+           hover:shadow-xl transition-all duration-300;
+  }
+
+  /* Input Styles */
+  .input-divine {
+    @apply bg-card text-foreground border border-border rounded-lg px-4 py-3 
+           focus:ring-2 focus:ring-primary focus:border-primary 
+           transition-all duration-200 placeholder:text-muted-foreground;
+  }
+
+  /* Navigation Styles */
+  .nav-divine {
+    @apply bg-card/95 backdrop-blur-md border-b border-border/50 
+           shadow-sm sticky top-0 z-50;
+  }
+
+  .tab-divine {
+    @apply flex flex-col items-center gap-1 p-3 rounded-lg 
+           transition-all duration-200 text-muted-foreground 
+           hover:text-primary hover:bg-primary/5;
+  }
+
+  .tab-divine.active {
+    @apply text-primary bg-primary/10 shadow-sm;
+  }
+
+  /* Animation Classes */
+  .fade-in {
+    animation: fadeIn 0.3s ease-out forwards;
+  }
+
+  .slide-up {
+    animation: slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+
+  .divine-glow {
+    @apply shadow-divine;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Utility Classes */
+@layer utilities {
+  .text-gradient-divine {
+    @apply bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent;
+  }
+
+  .bg-gradient-divine {
+    background: var(--gradient-divine);
+  }
+
+  .bg-gradient-temple {
+    background: var(--gradient-temple);
+  }
+
+  .bg-gradient-sacred {
+    background: var(--gradient-sacred);
+  }
+
+  .shadow-divine {
+    box-shadow: var(--shadow-divine);
+  }
+
+  .shadow-temple {
+    box-shadow: var(--shadow-temple);
+  }
+
+  .shadow-sacred {
+    box-shadow: var(--shadow-sacred);
+  }
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none; /* IE & Edge */
+  scrollbar-width: none;    /* Firefox */
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none; /* Chrome, Safari */
+}

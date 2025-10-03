@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    
+    <!-- Primary Meta Tags -->
+    <title>Divine Temple - Sacred Journey App</title>
+    <meta name="title" content="Divine Temple - Sacred Journey App" />
+    <meta name="description" content="Experience divine blessings, sacred ceremonies, and spiritual guidance. Join thousands of devotees in prayer, book ceremonies, and connect with your inner peace through our beautiful temple app." />
+    <meta name="author" content="Divine Temple Team" />
+    <meta name="keywords" content="temple, prayer, spiritual, ceremony, divine, blessing, meditation, devotion, sacred, faith" />
+    
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://divinetemple.app/" />
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://divinetemple.app/" />
+    <meta property="og:title" content="Divine Temple - Sacred Journey App" />
+    <meta property="og:description" content="Experience divine blessings, sacred ceremonies, and spiritual guidance. Join thousands of devotees in your spiritual journey." />
+    <meta property="og:image" content="https://divinetemple.app/og-image.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:site_name" content="Divine Temple" />
+    <meta property="og:locale" content="en_US" />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content="https://divinetemple.app/" />
+    <meta name="twitter:title" content="Divine Temple - Sacred Journey App" />
+    <meta name="twitter:description" content="Experience divine blessings, sacred ceremonies, and spiritual guidance in our beautiful temple app." />
+    <meta name="twitter:image" content="https://divinetemple.app/twitter-image.jpg" />
+    <meta name="twitter:creator" content="@divinetempleapp" />
+
+    <!-- PWA Meta Tags -->
+    <meta name="application-name" content="Divine Temple" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Divine Temple" />
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="msapplication-config" content="/browserconfig.xml" />
+    <meta name="msapplication-TileColor" content="#EA580C" />
+    <meta name="msapplication-tap-highlight" content="no" />
+    <meta name="theme-color" content="#EA580C" />
+    <meta name="color-scheme" content="light dark" />
+
+    <!-- iOS Safe Area -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <style>
+      body {
+        padding: env(safe-area-inset-top, 0) env(safe-area-inset-right, 0) env(safe-area-inset-bottom, 0) env(safe-area-inset-left, 0);
+      }
+    </style>
+
+    <!-- Favicon and Icons -->
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png" />
+    <link rel="mask-icon" href="/icons/safari-pinned-tab.svg" color="#EA580C" />
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json" />
+
+    <!-- Preload Critical Resources -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    
+    <!-- Security Headers -->
+    <meta http-equiv="Content-Security-Policy" content="
+      default-src 'self';
+      script-src 'self' 'unsafe-inline' 'unsafe-eval' https://maps.googleapis.com https://*.googleapis.com https://checkout.razorpay.com;
+      style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+      font-src 'self' https://fonts.gstatic.com https://*.gstatic.com;
+      img-src 'self' data: blob: https:;
+      media-src 'self' blob:;
+      connect-src 'self' http://localhost:* https: https://api.razorpay.com;
+      worker-src 'self';
+      child-src 'self';
+      frame-src 'self' https://api.razorpay.com;
+    " />
+    <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+    
+    <meta http-equiv="X-XSS-Protection" content="1; mode=block" />
+    <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin" />
+    <meta http-equiv="Permissions-Policy" content="
+      accelerometer=(),
+      camera=*,
+      geolocation=*,
+      gyroscope=(),
+      magnetometer=(),
+      microphone=(),
+      payment=*,
+      usb=()
+    " />
+
+    <!-- Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "MobileApplication",
+      "name": "Divine Temple",
+      "applicationCategory": "LifestyleApplication",
+      "operatingSystem": "All",
+      "description": "Experience divine blessings, sacred ceremonies, and spiritual guidance through our beautiful temple app",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "4.8",
+        "ratingCount": "1250"
+      }
+    }
+    </script>
+  </head>
+
+  <body>
+    <div id="root"></div>
+    <!-- Razorpay SDK -->
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
