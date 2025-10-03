@@ -1,25 +1,41 @@
 # Standardized Port Configuration
 
-## Reserved Ports
+## Reserved Ports (FROZEN)
 
-| Service | Port | URL |
-|---------|------|-----|
-| **abhaya-hasta-backend** | 3000 | http://localhost:3000 |
-| **sacred-ops-dashboard** | 8080 | http://localhost:8080 |
-| PostgreSQL Database | 5432 | localhost:5432 |
+| Service | Port | URL | Purpose |
+|---------|------|-----|---------|
+| **abhaya-hasta-backend** | 3000 | http://localhost:3000 | Admin Dashboard Backend |
+| **gaithri-backend** | 3002 | http://localhost:3002 | User App Backend |
+| **sacred-ops-dashboard** | 8080 | http://localhost:8080 | Admin Dashboard Frontend |
+| **culture-path-skeleton** | 8081 | http://localhost:8081 | User App Frontend |
+| PostgreSQL Database | 5432 | localhost:5432 | Database |
+
+## Service Mapping
+
+### Main Code Paths (MCP)
+- **gaithri-backend** (port 3002) ↔ **culture-path-skeleton** (port 8081) - User App
+- **abhaya-hasta-backend** (port 3000) ↔ **sacred-ops-dashboard** (port 8080) - Admin Dashboard
 
 ## Configuration Files
 
-### Backend (abhaya-hasta-backend)
+### Admin Dashboard Backend (abhaya-hasta-backend)
 - `.env`: `PORT=3000`
 - `server.js`: Uses `process.env.PORT || 3000`
 - `docker-compose.yml`: Maps `3000:3000`
 
-### Dashboard (sacred-ops-dashboard)
+### User App Backend (gaithri-backend)
+- `server.js`: Uses `process.env.PORT || 3002`
+- Default port: `3002`
+
+### Admin Dashboard Frontend (sacred-ops-dashboard)
 - `vite.config.ts`: `port: 8080`
 - `src/services/apiClient.ts`: `http://localhost:3000/api`
 - `src/services/classesApi.ts`: `http://localhost:3000/api`
 - `docker-compose.yml`: Maps `8080:8080`
+
+### User App Frontend (culture-path-skeleton)
+- `vite.config.ts`: `port: 8081`
+- `.env`: `VITE_API_BASE_URL=http://localhost:3002/api`
 
 ## Starting Servers
 
